@@ -1,0 +1,5 @@
+{
+  "name": "TradeGenius AI - B2B Marketplace",
+  "description": "An advanced Alibaba-like B2B e-commerce platform featuring AI-powered sourcing, smart RFQ generation, supplier analytics, and real-time negotiation assistance using Google Gemini.",
+  "requestFramePermissions": []
+}
