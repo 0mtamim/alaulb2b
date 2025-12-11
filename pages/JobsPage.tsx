@@ -84,21 +84,6 @@ const JobsPage: React.FC = () => {
         const filterMinSalary = minSalary ? parseInt(minSalary) : 0;
         const filterMaxSalary = maxSalary ? parseInt(maxSalary) : Infinity;
         
-        // We check if the job's salary range overlaps or meets the criteria
-        // Simple logic: Job max salary should be at least the user's min salary requirement
-        // And Job min salary should be within the max budget if specified (optional logic, but here let's do range inclusion)
-        
-        // Let's go with: Job must pay at least Min Salary (if specified) AND Job must not exceed Max Salary requirement (if specified - though usually candidates want higher, let's assume this filters for "jobs within this budget")
-        // Actually, typically candidates filter: "I want at least $X". 
-        // Employers filter: "I can pay up to $Y".
-        // As a candidate (user), I usually set a Min Salary.
-        // If I set a range "$50k - $80k", I might be looking for jobs that fall roughly in that band.
-        
-        // Implementation: 
-        // 1. Job Max >= Filter Min (Job pays enough)
-        // 2. Job Min <= Filter Max (Job isn't too high level? Or maybe just ignore max for candidates)
-        // Let's implement generic range overlap for flexibility.
-        
         const salaryMatches = (jobSalary.max >= filterMinSalary) && (filterMaxSalary === Infinity || jobSalary.min <= filterMaxSalary);
 
         return matchesSearch && matchesLocation && matchesType && salaryMatches;
@@ -471,4 +456,45 @@ const JobsPage: React.FC = () => {
                                     onClick={handleAnalyzeResume}
                                     className="bg-blue-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-700 transition-colors"
                                  >
-                                     {isAnalyzing
+                                     {isAnalyzing ? 'Analyzing...' : 'Analyze Resume'}
+                                 </button>
+                             </div>
+                         ) : (
+                             <div className="space-y-4">
+                                 <div className="flex items-center gap-3 mb-4 p-4 bg-green-50 rounded-lg border border-green-100">
+                                     <div className="bg-white p-2 rounded-full shadow-sm">
+                                         <span className="text-xl font-bold text-green-600">{resumeAnalysis.matchScore}%</span>
+                                     </div>
+                                     <div>
+                                         <h4 className="font-bold text-green-900">Match Score</h4>
+                                         <p className="text-xs text-green-700">Your profile is a strong candidate for this role.</p>
+                                     </div>
+                                 </div>
+                                 <div className="space-y-2 text-sm">
+                                     <div className="font-bold text-slate-700">AI Suggestions:</div>
+                                     <p className="text-slate-600 bg-gray-50 p-3 rounded border border-gray-100">{resumeAnalysis.tips}</p>
+                                 </div>
+                                 <div className="space-y-2 text-sm">
+                                     <div className="font-bold text-slate-700">Missing Skills:</div>
+                                     <div className="flex flex-wrap gap-2">
+                                         {resumeAnalysis.missingSkills.map((skill: string) => (
+                                             <span key={skill} className="px-2 py-1 bg-red-50 text-red-600 border border-red-100 rounded text-xs">{skill}</span>
+                                         ))}
+                                     </div>
+                                 </div>
+                                 <button 
+                                    onClick={() => setResumeAnalysis(null)}
+                                    className="w-full mt-4 border border-gray-300 text-gray-600 py-2 rounded font-bold hover:bg-gray-50"
+                                 >
+                                     Upload New Resume
+                                 </button>
+                             </div>
+                         )}
+                     </div>
+                 </div>
+             )}
+        </div>
+    );
+};
+
+export default JobsPage;
