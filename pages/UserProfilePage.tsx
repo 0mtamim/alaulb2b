@@ -1,8 +1,9 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { User, Mail, Phone, MapPin, Briefcase, Settings, CreditCard, Heart, History, TrendingUp, Sparkles, Bell, Lock, Link as LinkIcon, CheckCircle, ToggleLeft, ToggleRight, ChevronDown, ChevronUp, ShieldCheck, Upload, FileText, AlertCircle, Clock, Camera, Tag, Plus, Crown, Trash2, Smartphone, Globe, Monitor, LogOut, Eye, EyeOff, AlertTriangle, Save } from 'lucide-react';
-import { UserProfile } from '../types';
+import { User, Mail, Phone, MapPin, Briefcase, Settings, CreditCard, Heart, History, TrendingUp, Sparkles, Bell, Lock, Link as LinkIcon, CheckCircle, ToggleLeft, ToggleRight, ChevronDown, ChevronUp, ShieldCheck, Upload, FileText, AlertCircle, Clock, Camera, Tag, Plus, Crown, Trash2, Smartphone, Globe, Monitor, LogOut, Eye, EyeOff, AlertTriangle, Save, X, Loader2 } from 'lucide-react';
+import { UserProfile, PaymentMethod } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
+import { validateCardLuhn, verifyFileSignature, sanitizeImageFile } from '../utils/security';
 
 const MOCK_USER: UserProfile = {
   id: 'u1',
@@ -20,6 +21,10 @@ const MOCK_USER: UserProfile = {
 const ACTIVE_SESSIONS = [
     { id: 1, device: 'MacBook Pro', location: 'New York, USA', ip: '192.168.1.1', lastActive: 'Current Session', icon: Monitor },
     { id: 2, device: 'iPhone 14 Pro', location: 'New York, USA', ip: '10.0.0.12', lastActive: '2 hours ago', icon: Smartphone },
+];
+
+const INITIAL_PAYMENT_METHODS: PaymentMethod[] = [
+    { id: 'pm1', type: 'Visa', last4: '4242', expiry: '12/25', isDefault: true }
 ];
 
 // Reusable Accordion Component
@@ -63,6 +68,7 @@ const UserProfilePage: React.FC = () => {
   const { availableLanguages, availableCurrencies, language, setLanguage, currency, setCurrency } = useLanguage();
   const [activeTab, setActiveTab] = useState<'profile' | 'settings'>('profile');
   const [avatar, setAvatar] = useState(MOCK_USER.avatar);
+  const [isAvatarProcessing, setIsAvatarProcessing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const initialNotifications = { email: true, sms: false, push: true, marketing: false };
@@ -70,6 +76,7 @@ const UserProfilePage: React.FC = () => {
 
   const [notifications, setNotifications] = useState(initialNotifications);
   const [securitySettings, setSecuritySettings] = useState(initialSecurity);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>(INITIAL_PAYMENT_METHODS);
   
   const [isDirty, setIsDirty] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -84,6 +91,14 @@ const UserProfilePage: React.FC = () => {
   });
 
   const [verificationStatus, setVerificationStatus] = useState<'unverified' | 'pending' | 'verified'>('unverified');
+
+  // --- Payment Modal State ---
+  const [showAddCard, setShowAddCard] = useState(false);
+  const [cardForm, setCardForm] = useState({ number: '', expiry: '', cvv: '', name: '' });
+  const [processingCard, setProcessingCard] = useState(false);
+  const [secureStep, setSecureStep] = useState<'input' | '3ds' | 'success'>('input');
+  const [cardError, setCardError] = useState('');
+  const [otp, setOtp] = useState('');
 
   const handleNotificationsChange = (key: keyof typeof notifications, value: boolean) => {
     setNotifications(prev => ({ ...prev, [key]: value }));
@@ -138,13 +153,99 @@ const UserProfilePage: React.FC = () => {
       }
   };
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  // Secure Avatar Upload with Scrubbing
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      const imageUrl = URL.createObjectURL(file);
-      setAvatar(imageUrl);
-      setIsDirty(true); // Changing avatar is a saveable action
+      setIsAvatarProcessing(true);
+      
+      // 1. Signature Verification
+      const isValid = await verifyFileSignature(file);
+      if(!isValid) {
+          alert("Security Error: Invalid file format.");
+          setIsAvatarProcessing(false);
+          return;
+      }
+
+      // 2. Sanitization (Canvas redraw)
+      const cleanFile = await sanitizeImageFile(file);
+      if (cleanFile) {
+          const imageUrl = URL.createObjectURL(cleanFile);
+          setAvatar(imageUrl);
+          setIsDirty(true);
+      } else {
+          alert("Error processing image. The file might be corrupt.");
+      }
+      setIsAvatarProcessing(false);
     }
+  };
+
+  // --- Payment Handlers ---
+  const handleAddCardClick = () => {
+      setCardForm({ number: '', expiry: '', cvv: '', name: '' });
+      setSecureStep('input');
+      setCardError('');
+      setOtp('');
+      setShowAddCard(true);
+  };
+
+  const handleCardSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      
+      // Basic Validation
+      if (!cardForm.number || !cardForm.expiry || !cardForm.cvv || !cardForm.name) {
+          setCardError('All fields are required.');
+          return;
+      }
+
+      // Luhn Check (Forgery Protection)
+      if (!validateCardLuhn(cardForm.number.replace(/\s/g, ''))) {
+          setCardError('Invalid card number. Please check for typos.');
+          return;
+      }
+
+      setProcessingCard(true);
+      
+      // Simulate API delay then trigger 3DS
+      setTimeout(() => {
+          setProcessingCard(false);
+          setSecureStep('3ds');
+      }, 1500);
+  };
+
+  const handle3DSSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      if (otp.length !== 6) {
+          alert("Please enter a valid 6-digit OTP.");
+          return;
+      }
+      
+      setProcessingCard(true);
+      setTimeout(() => {
+          setProcessingCard(false);
+          setSecureStep('success');
+          
+          // Add to list
+          const newCard: PaymentMethod = {
+              id: `pm_${Date.now()}`,
+              type: 'Visa', // Mock detection
+              last4: cardForm.number.slice(-4),
+              expiry: cardForm.expiry,
+              isDefault: false
+          };
+          setPaymentMethods(prev => [...prev, newCard]);
+          
+          // Close after short delay
+          setTimeout(() => {
+              setShowAddCard(false);
+          }, 1500);
+      }, 2000);
+  };
+
+  const handleDeleteCard = (id: string) => {
+      if(window.confirm('Are you sure you want to remove this card?')) {
+          setPaymentMethods(prev => prev.filter(p => p.id !== id));
+      }
   };
 
   return (
@@ -160,18 +261,26 @@ const UserProfilePage: React.FC = () => {
                  {/* Interactive Avatar Upload */}
                  <div 
                     className="absolute -top-12 left-6 w-24 h-24 rounded-full border-4 border-white overflow-hidden shadow-md cursor-pointer group/avatar relative bg-gray-200"
-                    onClick={() => fileInputRef.current?.click()}
+                    onClick={() => !isAvatarProcessing && fileInputRef.current?.click()}
                     title="Click to change profile picture"
                  >
-                    <img src={avatar} alt="Profile" className="w-full h-full object-cover group-hover/avatar:opacity-75 transition-opacity"/>
-                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity bg-black/20">
-                        <Camera className="text-white drop-shadow-md" size={24} />
-                    </div>
+                    <img src={avatar} alt="Profile" className={`w-full h-full object-cover transition-opacity ${isAvatarProcessing ? 'opacity-50' : 'group-hover/avatar:opacity-75'}`}/>
+                    
+                    {isAvatarProcessing ? (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                            <Loader2 className="animate-spin text-white" size={24}/>
+                        </div>
+                    ) : (
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity bg-black/20">
+                            <Camera className="text-white drop-shadow-md" size={24} />
+                        </div>
+                    )}
+                    
                     <input 
                         type="file" 
                         ref={fileInputRef} 
                         className="hidden" 
-                        accept="image/*"
+                        accept="image/png, image/jpeg"
                         onChange={handleImageUpload} 
                     />
                  </div>
@@ -478,19 +587,32 @@ const UserProfilePage: React.FC = () => {
                     isOpen={expandedSections.payment} 
                     onToggle={() => toggleSection('payment')}
                   >
+                      {/* ... (Existing Payment UI) ... */}
                       <div className="space-y-4">
-                          <div className="p-4 border border-gray-200 rounded-lg flex items-center justify-between">
-                              <div className="flex items-center gap-4">
-                                  <div className="w-12 h-8 bg-slate-800 rounded flex items-center justify-center text-white text-xs font-bold">VISA</div>
-                                  <div>
-                                      <div className="font-bold text-slate-800">Visa ending in 4242</div>
-                                      <div className="text-xs text-gray-500">Expires 12/25 • Default</div>
+                          {paymentMethods.map(pm => (
+                              <div key={pm.id} className="p-4 border border-gray-200 rounded-lg flex items-center justify-between bg-white hover:shadow-sm transition-shadow">
+                                  <div className="flex items-center gap-4">
+                                      <div className={`w-12 h-8 rounded flex items-center justify-center text-white text-xs font-bold ${pm.type === 'Visa' ? 'bg-blue-900' : pm.type === 'MasterCard' ? 'bg-orange-600' : 'bg-blue-500'}`}>
+                                          {pm.type}
+                                      </div>
+                                      <div>
+                                          <div className="font-bold text-slate-800 flex items-center gap-2">
+                                              {pm.type} ending in {pm.last4}
+                                              {pm.isDefault && <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full border border-slate-200">Default</span>}
+                                          </div>
+                                          <div className="text-xs text-gray-500">Expires {pm.expiry}</div>
+                                      </div>
                                   </div>
+                                  <button onClick={() => handleDeleteCard(pm.id)} className="text-gray-400 hover:text-red-500 p-2 rounded hover:bg-red-50 transition-colors">
+                                      <Trash2 size={18}/>
+                                  </button>
                               </div>
-                              <button className="text-gray-400 hover:text-red-500"><Trash2 size={18}/></button>
-                          </div>
+                          ))}
                           
-                          <button className="w-full py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 font-bold hover:border-orange-500 hover:text-orange-500 transition-colors flex items-center justify-center gap-2">
+                          <button 
+                            onClick={handleAddCardClick}
+                            className="w-full py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 font-bold hover:border-orange-500 hover:text-orange-500 hover:bg-orange-50 transition-all flex items-center justify-center gap-2"
+                          >
                               <Plus size={18}/> Add New Card
                           </button>
                       </div>
@@ -642,6 +764,156 @@ const UserProfilePage: React.FC = () => {
            )}
         </div>
       </div>
+        
+        {/* Secure Add Card Modal */}
+        {showAddCard && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm animate-fade-in">
+                {/* ... (Existing Modal Content) ... */}
+                <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden relative">
+                    {/* Header */}
+                    <div className="bg-slate-900 text-white p-4 flex justify-between items-center">
+                        <div className="flex items-center gap-2 font-bold">
+                            <Lock size={16} className="text-green-400"/>
+                            Secure Payment Setup
+                        </div>
+                        <button onClick={() => setShowAddCard(false)} className="text-slate-400 hover:text-white"><X size={20}/></button>
+                    </div>
+
+                    <div className="p-6">
+                        {secureStep === 'input' && (
+                            <form onSubmit={handleCardSubmit} className="space-y-4">
+                                <div className="text-center mb-6">
+                                    <ShieldCheck size={48} className="mx-auto text-green-500 mb-2"/>
+                                    <h3 className="font-bold text-slate-800 text-lg">Add New Card</h3>
+                                    <p className="text-xs text-slate-500">Your details are encrypted using 256-bit SSL.</p>
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Cardholder Name</label>
+                                    <input 
+                                        type="text" 
+                                        className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:border-green-500 focus:ring-1 focus:ring-green-500 outline-none"
+                                        placeholder="Name on Card"
+                                        value={cardForm.name}
+                                        onChange={e => setCardForm({...cardForm, name: e.target.value})}
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Card Number</label>
+                                    <div className="relative">
+                                        <input 
+                                            type="text" 
+                                            maxLength={19}
+                                            className="w-full pl-10 p-3 border border-gray-300 rounded-lg text-sm focus:border-green-500 focus:ring-1 focus:ring-green-500 outline-none"
+                                            placeholder="0000 0000 0000 0000"
+                                            value={cardForm.number}
+                                            onChange={e => setCardForm({...cardForm, number: e.target.value})}
+                                        />
+                                        <CreditCard size={18} className="absolute left-3 top-3 text-gray-400"/>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Expiry Date</label>
+                                        <input 
+                                            type="text" 
+                                            maxLength={5}
+                                            className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:border-green-500 focus:ring-1 focus:ring-green-500 outline-none"
+                                            placeholder="MM/YY"
+                                            value={cardForm.expiry}
+                                            onChange={e => setCardForm({...cardForm, expiry: e.target.value})}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">CVV</label>
+                                        <div className="relative">
+                                            <input 
+                                                type="password" 
+                                                maxLength={4}
+                                                className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:border-green-500 focus:ring-1 focus:ring-green-500 outline-none"
+                                                placeholder="***"
+                                                value={cardForm.cvv}
+                                                onChange={e => setCardForm({...cardForm, cvv: e.target.value})}
+                                            />
+                                            <Lock size={14} className="absolute right-3 top-3.5 text-gray-400"/>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {cardError && (
+                                    <div className="bg-red-50 border border-red-200 text-red-600 text-xs p-2 rounded flex items-center gap-2">
+                                        <AlertTriangle size={14}/> {cardError}
+                                    </div>
+                                )}
+
+                                <button 
+                                    type="submit" 
+                                    disabled={processingCard}
+                                    className="w-full bg-slate-900 text-white py-3 rounded-lg font-bold hover:bg-slate-800 transition-colors flex justify-center items-center gap-2 shadow-lg"
+                                >
+                                    {processingCard ? <Loader2 className="animate-spin" size={18}/> : <Lock size={16}/>}
+                                    {processingCard ? 'Verifying...' : 'Secure Save'}
+                                </button>
+                                
+                                <div className="flex justify-center gap-4 mt-2">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" className="h-4 opacity-50" alt="Visa"/>
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" className="h-4 opacity-50" alt="Mastercard"/>
+                                </div>
+                            </form>
+                        )}
+
+                        {/* 3D Secure Simulation Step */}
+                        {secureStep === '3ds' && (
+                            <form onSubmit={handle3DSSubmit} className="animate-fade-in text-center space-y-6">
+                                <div className="border border-slate-200 rounded-lg p-4 bg-slate-50">
+                                    <div className="flex justify-center mb-4">
+                                        <div className="bg-white p-2 rounded shadow-sm border">
+                                            <Globe size={32} className="text-blue-600"/>
+                                        </div>
+                                    </div>
+                                    <h3 className="font-bold text-slate-800">Verified by Bank</h3>
+                                    <p className="text-xs text-slate-500 mt-1">Please enter the One-Time Password (OTP) sent to your mobile ending in **88.</p>
+                                </div>
+
+                                <div>
+                                    <input 
+                                        type="text" 
+                                        maxLength={6}
+                                        className="w-full p-4 text-center text-2xl font-mono tracking-widest border-2 border-slate-300 rounded-xl focus:border-blue-500 outline-none"
+                                        placeholder="000000"
+                                        value={otp}
+                                        onChange={e => setOtp(e.target.value.replace(/\D/g, ''))}
+                                        autoFocus
+                                    />
+                                    <p className="text-xs text-slate-400 mt-2">Resend OTP in 30s</p>
+                                </div>
+
+                                <button 
+                                    type="submit" 
+                                    disabled={processingCard}
+                                    className="w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 transition-colors shadow-lg flex justify-center items-center gap-2"
+                                >
+                                    {processingCard ? <Loader2 className="animate-spin" size={18}/> : 'Submit'}
+                                </button>
+                            </form>
+                        )}
+
+                        {/* Success Step */}
+                        {secureStep === 'success' && (
+                            <div className="text-center py-8 animate-scale-in">
+                                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <CheckCircle size={40} className="text-green-600"/>
+                                </div>
+                                <h3 className="text-xl font-bold text-slate-800">Card Added Successfully</h3>
+                                <p className="text-sm text-slate-500 mt-2">Your payment method is now ready for secure transactions.</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        )}
         
         {/* Save Bar */}
         {isDirty && (

@@ -337,41 +337,28 @@ const SupplierProfile: React.FC = () => {
         {/* Center Content */}
         <div className="lg:col-span-3 space-y-8">
           
-          {/* About Section (Home) */}
           {activeTab === 'home' && (
             <div className="space-y-8 animate-fade-in">
               <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100">
                 <h2 className="text-xl font-bold text-slate-800 mb-4">Company Overview</h2>
                 <p className="text-gray-600 leading-relaxed mb-8">{MOCK_SUPPLIER.aboutUs}</p>
                 
-                {/* Unified Factory Tour & Media Section */}
                 <div>
                    <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2 text-lg">
                       <Factory size={20} className="text-orange-500"/> Factory Tour & Media
                    </h3>
-                   
-                   {/* Introduction Video */}
                    <div className="mb-8">
                        <div className="flex justify-between items-center mb-3">
                            <h4 className="font-bold text-slate-700 flex items-center gap-2 text-sm">
                                <Video size={16} className="text-blue-500"/> Introduction Video
                            </h4>
-                           <button 
-                               onClick={handleVideoUpload}
-                               className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg flex items-center gap-2 transition-colors border border-gray-200 font-medium"
-                           >
+                           <button onClick={handleVideoUpload} className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg flex items-center gap-2 transition-colors border border-gray-200 font-medium">
                                <Upload size={14}/> Update Video
                            </button>
                        </div>
-                       
                        <div className="aspect-video w-full bg-slate-900 rounded-xl overflow-hidden shadow-sm relative group border border-gray-200">
                            {factoryVideo ? (
-                               <video 
-                                   src={factoryVideo} 
-                                   className="w-full h-full object-cover" 
-                                   controls 
-                                   poster={MOCK_SUPPLIER.bannerImage}
-                               >
+                               <video src={factoryVideo} className="w-full h-full object-cover" controls poster={MOCK_SUPPLIER.bannerImage}>
                                    Your browser does not support the video tag.
                                </video>
                            ) : (
@@ -385,8 +372,6 @@ const SupplierProfile: React.FC = () => {
                            )}
                        </div>
                    </div>
-
-                   {/* Factory Images Grid */}
                    <div>
                        <h4 className="font-bold text-slate-700 mb-3 text-sm flex items-center gap-2">
                            <Sparkles size={16} className="text-yellow-500"/> Facility Images
@@ -415,7 +400,6 @@ const SupplierProfile: React.FC = () => {
                    </div>
                 </div>
               </div>
-
               <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100">
                 <h2 className="text-xl font-bold text-slate-800 mb-6">Trade Capabilities</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -456,12 +440,124 @@ const SupplierProfile: React.FC = () => {
             </div>
           )}
 
-          {/* Other Tabs content would follow here (omitted for brevity as only Business Type display was requested) */}
+          {activeTab === 'products' && (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 animate-fade-in">
+                <table className="w-full text-sm text-left">
+                    <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+                        <tr>
+                            <th className="px-6 py-4">Product</th>
+                            <th className="px-6 py-4">Views</th>
+                            <th className="px-6 py-4">Inquiries</th>
+                            <th className="px-6 py-4">Conversion</th>
+                            <th className="px-6 py-4">Price</th>
+                            <th className="px-6 py-4">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {PRODUCTS_TAB_DATA.map(p => (
+                            <tr key={p.id} className="border-b border-gray-100 hover:bg-slate-50">
+                                <td className="px-6 py-4">
+                                    <div className="flex items-center gap-4">
+                                        <img src={p.image} className="w-12 h-12 rounded object-cover"/>
+                                        <span className="font-bold text-slate-800">{p.name}</span>
+                                    </div>
+                                </td>
+                                <td className="px-6 py-4 font-medium text-slate-600">{p.views}</td>
+                                <td className="px-6 py-4 font-medium text-slate-600">{p.inquiries}</td>
+                                <td className="px-6 py-4 font-bold text-green-600">{p.conversion}</td>
+                                <td className="px-6 py-4 font-medium text-slate-600">{p.price}</td>
+                                <td className="px-6 py-4">
+                                    <button onClick={() => handleContactProduct(p.name)} className="bg-orange-500 text-white text-xs px-3 py-1.5 rounded font-bold hover:bg-orange-600">
+                                        Inquire
+                                    </button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+          )}
           
-          {/* Profile Tab - Detailed Company Info */}
+          {activeTab === 'analytics' && (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 animate-fade-in space-y-12">
+                <section>
+                    <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2"><TrendingUp className="text-blue-500"/> Traffic & Engagement</h3>
+                    <div className="h-72 w-full">
+                        <ResponsiveContainer>
+                            <BarChart data={PERFORMANCE_DATA}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="name" fontSize={12} />
+                                <YAxis fontSize={12} />
+                                <Tooltip />
+                                <Legend />
+                                <Bar dataKey="views" fill="#3b82f6" name="Product Views" />
+                                <Bar dataKey="inquiries" fill="#f97316" name="Inquiries" />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </section>
+                <section>
+                    <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2"><DollarSign className="text-green-500"/> Product Price Trends</h3>
+                    <div className="h-72 w-full">
+                        <ResponsiveContainer>
+                            <LineChart data={PRICE_TREND_DATA}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="month" fontSize={12}/>
+                                <YAxis fontSize={12} />
+                                <Tooltip />
+                                <Legend />
+                                <Line type="monotone" dataKey="Hydraulic Pump" stroke="#f97316" />
+                                <Line type="monotone" dataKey="CNC Parts" stroke="#3b82f6" />
+                                <Line type="monotone" dataKey="IoT Sensor" stroke="#10b981" />
+                            </LineChart>
+                        </ResponsiveContainer>
+                    </div>
+                </section>
+                <section>
+                    <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2"><Globe className="text-purple-500"/> Market Distribution</h3>
+                    <div className="h-72 w-full">
+                        <ResponsiveContainer>
+                           <PieChart>
+                               <Pie data={MARKET_PIE_DATA} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
+                                   {MARKET_PIE_DATA.map((entry, index) => (
+                                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                   ))}
+                               </Pie>
+                               <Tooltip/>
+                               <Legend/>
+                           </PieChart>
+                        </ResponsiveContainer>
+                    </div>
+                </section>
+            </div>
+          )}
+
+          {activeTab === 'certificates' && (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 animate-fade-in">
+                <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2"><FileCheck className="text-green-500"/> Certifications & Compliance</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {MOCK_SUPPLIER.detailedCerts.map((cert, idx) => (
+                        <div key={idx} className="border border-gray-200 rounded-lg p-6 flex flex-col hover:border-blue-300 transition-all">
+                            <div className="flex-1 mb-4">
+                                <Award size={24} className="text-yellow-500 mb-3"/>
+                                <h4 className="font-bold text-slate-800">{cert.name}</h4>
+                                <p className="text-xs text-slate-500 mt-1">Issued by: {cert.issuer}</p>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4 text-xs border-t border-gray-100 pt-4">
+                                <div><span className="font-bold text-slate-500 block">Issue Date</span> {cert.issueDate}</div>
+                                <div><span className="font-bold text-slate-500 block">Expiry Date</span> {cert.expiryDate}</div>
+                            </div>
+                            <button onClick={() => setViewingCert(cert)} className="w-full mt-4 text-sm text-blue-600 font-bold border border-blue-200 rounded py-2 hover:bg-blue-50 transition-colors">
+                                View Certificate
+                            </button>
+                        </div>
+                    ))}
+                </div>
+            </div>
+          )}
+          
           {activeTab === 'profile' && (
              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 animate-fade-in space-y-10">
-                {/* Company Details Table */}
                 <section>
                     <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
                         <Briefcase className="text-blue-500"/> Company Details
@@ -504,6 +600,41 @@ const SupplierProfile: React.FC = () => {
 
         </div>
       </div>
+
+      {/* Certificate Viewer Modal */}
+      {viewingCert && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4 animate-fade-in" onClick={() => setViewingCert(null)}>
+            <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full relative" onClick={e => e.stopPropagation()}>
+                <button onClick={() => setViewingCert(null)} className="absolute -top-4 -right-4 bg-white text-slate-600 rounded-full p-2 shadow-lg hover:bg-red-500 hover:text-white transition-all"><X/></button>
+                <div className="p-6 border-b border-gray-200">
+                    <h3 className="font-bold text-lg">{viewingCert.name}</h3>
+                    <p className="text-xs text-gray-500">Issued by: {viewingCert.issuer}</p>
+                </div>
+                <div className="p-6">
+                    <img src={viewingCert.image} alt={viewingCert.name} className="w-full h-auto object-contain max-h-[70vh] rounded"/>
+                </div>
+            </div>
+        </div>
+      )}
+
+      {/* Chat Modal */}
+      {showChat && (
+        <div className="fixed bottom-4 right-4 w-96 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 flex flex-col overflow-hidden animate-fade-in-up" style={{height: '500px'}}>
+            <div className="bg-slate-900 text-white p-4 flex justify-between items-center"><h3 className="font-bold text-sm">Contact Supplier</h3><button onClick={() => setShowChat(false)}><X size={16}/></button></div>
+            <div ref={messagesEndRef} className="flex-1 p-4 overflow-y-auto space-y-4 bg-slate-50">
+                {chatHistory.map((msg, i) => (
+                    <div key={i} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                        <div className={`p-3 rounded-lg text-sm ${msg.sender === 'user' ? 'bg-orange-500 text-white' : 'bg-white border'}`}>{msg.text}</div>
+                    </div>
+                ))}
+            </div>
+            <div className="p-3 border-t bg-white flex gap-2">
+                <input value={chatInput} onChange={e => setChatInput(e.target.value)} onKeyPress={e => e.key === 'Enter' && handleSendMessage()} className="flex-1 p-2 border rounded" placeholder="Type your message..."/>
+                <button onClick={handleSendMessage} className="bg-orange-500 text-white px-4 rounded font-bold"><Send size={16}/></button>
+            </div>
+        </div>
+      )}
+
     </div>
   );
 };

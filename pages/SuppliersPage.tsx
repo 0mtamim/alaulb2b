@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { ShieldCheck, Star, MapPin, Award, CheckCircle, Search, Filter, Globe, Building2, TrendingUp, Zap, Briefcase } from 'lucide-react';
 import { Supplier } from '../types';
 
@@ -77,14 +77,34 @@ const SUPPLIERS: Supplier[] = [
 ];
 
 const SuppliersPage: React.FC = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState('');
   const [countryFilter, setCountryFilter] = useState('');
-  const [businessTypes, setBusinessTypes] = useState<string[]>([]);
+  
+  // Derive businessTypes state directly from URL search params
+  const businessTypes = searchParams.get('businessType') 
+    ? searchParams.get('businessType')!.split(',') 
+    : [];
 
   const handleBusinessTypeChange = (type: string) => {
-    setBusinessTypes(prev => 
-      prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
-    );
+    const current = new Set(businessTypes);
+    if (current.has(type)) {
+        current.delete(type);
+    } else {
+        current.add(type);
+    }
+    
+    const newTypes = Array.from(current);
+    
+    setSearchParams(prev => {
+        const next = new URLSearchParams(prev);
+        if (newTypes.length > 0) {
+            next.set('businessType', newTypes.join(','));
+        } else {
+            next.delete('businessType');
+        }
+        return next;
+    });
   };
 
   const filteredSuppliers = SUPPLIERS.filter(s => {
@@ -150,7 +170,7 @@ const SuppliersPage: React.FC = () => {
                                 <div className="flex items-center gap-1 text-xs font-bold text-orange-400">
                                     <Star size={12} fill="currentColor"/> {s.rating}
                                 </div>
-                                <button className="text-xs font-bold bg-white text-slate-900 px-3 py-1.5 rounded hover:bg-slate-200">View Profile</button>
+                                <Link to={`/supplier/${s.id}`} className="text-xs font-bold bg-white text-slate-900 px-3 py-1.5 rounded hover:bg-slate-200">View Profile</Link>
                             </div>
                         </div>
                     </div>
@@ -242,6 +262,28 @@ const SuppliersPage: React.FC = () => {
 
         {/* Suppliers List */}
         <div className="lg:w-3/4 space-y-6">
+            <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-gray-200">
+                <div className="text-sm font-bold text-slate-700">
+                    {filteredSuppliers.length} Suppliers Found
+                </div>
+                {businessTypes.length > 0 && (
+                    <div className="flex gap-2">
+                        {businessTypes.map(type => (
+                            <span key={type} className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full flex items-center gap-1 font-bold">
+                                {type}
+                                <button onClick={() => handleBusinessTypeChange(type)} className="hover:text-blue-900"><Briefcase size={10}/></button>
+                            </span>
+                        ))}
+                        <button 
+                            onClick={() => setSearchParams(prev => { prev.delete('businessType'); return prev; })}
+                            className="text-xs text-red-500 hover:underline font-bold"
+                        >
+                            Clear
+                        </button>
+                    </div>
+                )}
+            </div>
+
             {filteredSuppliers.map(s => (
                 <div key={s.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all">
                     <div className="flex flex-col md:flex-row gap-6">
@@ -313,6 +355,12 @@ const SuppliersPage: React.FC = () => {
                     <Search size={48} className="mx-auto text-gray-300 mb-4"/>
                     <h3 className="text-lg font-bold text-slate-700">No suppliers found</h3>
                     <p className="text-gray-500">Try adjusting your filters or search terms.</p>
+                    <button 
+                        onClick={() => { setSearch(''); setCountryFilter(''); setSearchParams(prev => { prev.delete('businessType'); return prev; }); }}
+                        className="mt-4 text-blue-600 font-bold hover:underline"
+                    >
+                        Clear All Filters
+                    </button>
                 </div>
             )}
         </div>

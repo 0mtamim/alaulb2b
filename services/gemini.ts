@@ -1,8 +1,27 @@
 
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 
-const apiKey = process.env.API_KEY || '';
-const ai = new GoogleGenAI({ apiKey });
+let aiInstance: GoogleGenAI | null = null;
+
+const getAiClient = () => {
+  if (aiInstance) return aiInstance;
+
+  try {
+    const apiKey = typeof process !== 'undefined' && process.env ? process.env.API_KEY : '';
+    if (!apiKey) {
+      console.warn("Gemini API Key is missing. AI features will run in mock mode.");
+      aiInstance = new GoogleGenAI({ apiKey: 'DUMMY_KEY_FOR_SAFE_INIT' });
+    } else {
+      aiInstance = new GoogleGenAI({ apiKey });
+    }
+  } catch (e) {
+    console.error("Failed to initialize GoogleGenAI client", e);
+    // Fallback dummy to prevent crashes
+    aiInstance = new GoogleGenAI({ apiKey: 'DUMMY_KEY' }); 
+  }
+  return aiInstance;
+};
+
 const modelId = "gemini-2.5-flash";
 
 /**
@@ -39,31 +58,74 @@ export const performRiskAssessment = async (data: any): Promise<{ riskLevel: 'Lo
 
 export const analyzeRFQ = async (text: string) => {
     try {
+        const ai = getAiClient();
         const response = await ai.models.generateContent({
             model: modelId,
-            contents: `Analyze this RFQ request and provide a JSON summary: "${text}". 
-            Return JSON with keys: summary (string), category (string), suggestions (string).`,
+            contents: `Analyze this RFQ request: "${text}"`,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        summary: { 
+                            type: Type.STRING,
+                            description: 'A brief summary of the RFQ.' 
+                        },
+                        category: { 
+                            type: Type.STRING,
+                            description: 'A suggested product category for the RFQ.'
+                        },
+                        suggestions: { 
+                            type: Type.STRING,
+                            description: 'Suggestions for the user to improve their RFQ for better quotes.'
+                        },
+                    },
+                    required: ["summary", "category", "suggestions"]
+                },
+            },
         });
-        return {
-            summary: "User is looking for custom printed cotton t-shirts.",
-            category: "Apparel",
-            suggestions: "Specify GSM and Print Method for better quotes."
-        };
+        const responseText = response.text;
+        if (!responseText) {
+          return { summary: "Analysis failed", category: "General", suggestions: "Received an empty response from the AI." };
+        }
+        const result = JSON.parse(responseText.trim());
+        return result;
     } catch (e) {
+        console.error("Error analyzing RFQ with Gemini:", e);
         return { summary: "Analysis failed", category: "General", suggestions: "Please add more details." };
     }
 };
 
 export const generateProductDescription = async (details: string) => {
     try {
+        const ai = getAiClient();
         const response = await ai.models.generateContent({
             model: modelId,
             contents: `Write a professional B2B product description for: ${details}`,
         });
-        return response.text;
+        return response.text || '';
     } catch (e) {
         return "High quality product meeting industry standards.";
     }
+};
+
+export const analyzeProductCompliance = async (description: string): Promise<{ compliant: boolean; issues: string[] }> => {
+    await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate AI thinking
+    
+    const restrictedKeywords = ['weapon', 'ivory', 'tobacco', 'replica'];
+    const issues: string[] = [];
+    
+    restrictedKeywords.forEach(keyword => {
+        if (description.toLowerCase().includes(keyword)) {
+            issues.push(`Contains restricted keyword: "${keyword}"`);
+        }
+    });
+
+    if (issues.length > 0) {
+        return { compliant: false, issues };
+    }
+    
+    return { compliant: true, issues: [] };
 };
 
 export const getMarketInsights = async (category: string) => {
@@ -86,10 +148,60 @@ export const analyzeFinancialTrends = async () => { return null; };
 export const generateEventConcept = async () => { return null; };
 
 export const analyzeDocument = async (docType: string, entityName: string) => {
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    if (docType.includes('License') || docType.includes('Business')) {
+        return {
+            valid: true,
+            confidence: 0.98,
+            extractedData: {
+                "Entity Name": entityName || "Detected Company LLC",
+                "Registration No": `CN-${Math.floor(10000000 + Math.random() * 90000000)}`,
+                "Incorporation Date": "2018-05-12",
+                "Address": "123 Innovation Drive, Shenzhen, China",
+                "Legal Rep": "Zhang Wei"
+            }
+        };
+    } else {
+        return {
+            valid: true,
+            confidence: 0.95,
+            extractedData: {
+                "Full Name": "John Doe",
+                "ID Number": `${Math.floor(100000000 + Math.random() * 900000000)}`,
+                "DOB": "1985-08-20",
+                "Nationality": "United States",
+                "Expiry Date": "2028-08-20"
+            }
+        };
+    }
+};
+
+export const analyzeProductListing = async (product: { title: string; category: string; description?: string }) => {
     await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    let issues = [];
+    let suggestions = [];
+    let qualityScore = 85;
+
+    if (product.title.toLowerCase().includes('replica')) {
+        issues.push("Prohibited keyword 'replica' found in title. Potential counterfeit item.");
+        qualityScore -= 50;
+    }
+    if (product.title.toLowerCase().includes('luxury watch') && product.category === 'Watches') {
+        issues.push("High-risk category 'Luxury Watches' requires brand authorization documents.");
+        qualityScore -= 15;
+    }
+    if (qualityScore < 50) {
+        suggestions.push("This item should likely be rejected due to multiple policy violations.");
+    } else {
+        suggestions.push("Add more detailed specifications to improve listing quality.");
+    }
+
     return {
-        valid: true,
-        extractedData: `Verified: ${docType} for ${entityName}. ID: ${Math.floor(Math.random() * 1000000)}`
+        qualityScore,
+        issues,
+        suggestions
     };
 };
 

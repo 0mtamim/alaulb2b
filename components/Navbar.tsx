@@ -4,6 +4,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Search, ShoppingCart, User, MessageSquare, Menu, LayoutDashboard, Clock, X, TrendingUp, History, Briefcase, Calendar, Globe, DollarSign, Ship, ShieldCheck, PenTool, Award, Layers, Users, CheckCircle, ChevronDown, LogIn, UserPlus, Crown, LogOut, Package, CreditCard } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useModules } from '../contexts/ModuleContext';
+import { useCart } from '../contexts/CartContext';
 
 const MOCK_SUGGESTIONS = [
   "CNC Machines", "Hydraulic Pumps", "Solar Panels", "Packaging Bags", 
@@ -107,6 +108,7 @@ const Navbar: React.FC = () => {
   const { language, setLanguage, currency, setCurrency, t, availableLanguages, availableCurrencies, isRTL } = useLanguage();
   const { modules } = useModules();
   const navigate = useNavigate();
+  const { openCart, cartCount } = useCart();
   const location = useLocation();
   
   const [query, setQuery] = useState('');
@@ -256,7 +258,6 @@ const Navbar: React.FC = () => {
           <div className="flex space-x-4 items-center">
             <Link to="/membership" className="hover:text-orange-400 cursor-pointer flex items-center gap-1 text-orange-200 font-bold"><Crown size={12}/> Membership</Link>
             
-            {/* Conditional Login/Join Links based on auth state */}
             {!currentUser && (
               <>
                 <Link to="/join" className="hover:text-orange-400 cursor-pointer flex items-center gap-1"><UserPlus size={12}/> Sign Up</Link>
@@ -264,7 +265,6 @@ const Navbar: React.FC = () => {
               </>
             )}
             
-            {/* Language Trigger */}
             <button 
               onClick={() => setShowSettingsModal(true)}
               className="hover:text-orange-400 cursor-pointer flex items-center gap-1.5 border border-transparent hover:border-slate-700 px-2 py-0.5 rounded transition-colors group"
@@ -279,232 +279,179 @@ const Navbar: React.FC = () => {
         </div>
 
         {/* Main Nav */}
-        <div className="container mx-auto px-4 py-3 flex items-center justify-between gap-4">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-orange-500 rounded-md flex items-center justify-center text-white font-bold text-lg shadow-sm">T</div>
-            <span className="text-2xl font-bold text-slate-800 tracking-tight">TradeGenius<span className="text-orange-500">.ai</span></span>
-          </Link>
+        <div className="container mx-auto px-4">
+          <div className="flex h-16 items-center justify-between gap-4">
+              
+              {/* Left Section */}
+              <div className="flex flex-shrink-0 items-center">
+                  <Link to="/" className="flex items-center gap-2">
+                      <div className="w-8 h-8 bg-orange-500 rounded-md flex items-center justify-center text-white font-bold text-lg shadow-sm">T</div>
+                      <span className="text-2xl font-bold text-slate-800 tracking-tight hidden lg:inline-block">TradeGenius<span className="text-orange-500">.ai</span></span>
+                  </Link>
+              </div>
 
-          {/* Enhanced Search */}
-          <div className="hidden md:flex flex-1 max-w-2xl relative" ref={searchRef}>
-            <div className="flex w-full border-2 border-orange-500 rounded-full overflow-hidden shadow-sm hover:shadow transition-shadow relative z-20 bg-white">
-              <select className="bg-gray-50 border-r border-gray-200 px-3 py-2 text-sm text-gray-600 focus:outline-none cursor-pointer hover:bg-gray-100">
-                <option>Products</option>
-                <option>Suppliers</option>
-                <option>Buyers</option>
-                {modules.invest && <option>Businesses</option>}
-              </select>
-              <input 
-                type="text" 
-                placeholder={t('search_placeholder')}
-                className="flex-1 px-4 py-2 focus:outline-none text-gray-700"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onFocus={() => setIsFocused(true)}
-                onKeyDown={handleKeyDown}
-              />
-              <button 
-                  onClick={() => handleSearch(query)}
-                  className="bg-orange-500 hover:bg-orange-600 text-white px-6 font-medium flex items-center gap-2 transition-colors"
-              >
-                <Search size={18} /> {t('btn_search')}
-              </button>
-            </div>
-
-            {/* Suggestions Dropdown */}
-            {isFocused && (
-              <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-xl shadow-xl mt-2 z-50 overflow-hidden animate-fade-in-up">
-                
-                {/* If Query is Empty: Show History + Trending */}
-                {query === '' && (
-                   <div className="py-2">
-                      {/* Recent History */}
-                      {recentSearches.length > 0 && (
-                        <div className="mb-2">
-                          <div className="flex justify-between items-center px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                             <span className="flex items-center gap-1"><History size={12}/> Recent Searches</span>
-                             <button onClick={clearHistory} className="hover:text-red-500 text-[10px] bg-gray-100 px-2 py-0.5 rounded">Clear History</button>
+              {/* Center Section (Search) */}
+              <div className="flex-1 min-w-0 hidden md:flex justify-center">
+                  <div className="w-full max-w-xl" ref={searchRef}>
+                      <div className="relative">
+                          <div className="flex w-full border-2 border-orange-500 rounded-full overflow-hidden shadow-sm hover:shadow transition-shadow bg-white">
+                              <select className="bg-gray-50 border-r border-gray-200 px-3 py-2 text-sm text-gray-600 focus:outline-none cursor-pointer hover:bg-gray-100">
+                                  <option>Products</option>
+                                  <option>Suppliers</option>
+                                  <option>Buyers</option>
+                                  {modules.invest && <option>Businesses</option>}
+                              </select>
+                              <input 
+                                  type="text" 
+                                  placeholder={t('search_placeholder')}
+                                  className="flex-1 px-4 py-2 focus:outline-none text-gray-700"
+                                  value={query}
+                                  onChange={(e) => setQuery(e.target.value)}
+                                  onFocus={() => setIsFocused(true)}
+                                  onKeyDown={handleKeyDown}
+                              />
+                              <button 
+                                  onClick={() => handleSearch(query)}
+                                  className="bg-orange-500 hover:bg-orange-600 text-white px-6 font-medium flex items-center gap-2 transition-colors"
+                              >
+                                  <Search size={18} /> {t('btn_search')}
+                              </button>
                           </div>
-                          {recentSearches.map((term, idx) => (
-                             <div 
-                               key={`history-${term}`} 
-                               className={`flex items-center justify-between px-4 py-2 cursor-pointer group transition-colors ${idx === activeIndex ? 'bg-orange-50 text-orange-700' : 'hover:bg-gray-50 text-gray-600'}`}
-                               onClick={() => handleSearch(term)}
-                               onMouseEnter={() => setActiveIndex(idx)}
-                             >
-                                <div className="flex items-center gap-3">
-                                   <Clock size={16} className={idx === activeIndex ? 'text-orange-400' : 'text-gray-400'}/>
-                                   <span>{term}</span>
+                          
+                          {isFocused && (
+                            <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-xl shadow-xl mt-2 z-50 overflow-hidden animate-fade-in-up">
+                              {query === '' ? (
+                                <div className="py-2">
+                                  {recentSearches.length > 0 && (
+                                    <div className="mb-2">
+                                      <div className="flex justify-between items-center px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                        <span className="flex items-center gap-1"><History size={12}/> Recent Searches</span>
+                                        <button onClick={clearHistory} className="hover:text-red-500 text-[10px] bg-gray-100 px-2 py-0.5 rounded">Clear History</button>
+                                      </div>
+                                      {recentSearches.map((term, idx) => (
+                                        <div key={`history-${term}`} className={`flex items-center justify-between px-4 py-2 cursor-pointer group transition-colors ${idx === activeIndex ? 'bg-orange-50 text-orange-700' : 'hover:bg-gray-50 text-gray-600'}`} onClick={() => handleSearch(term)} onMouseEnter={() => setActiveIndex(idx)}>
+                                          <div className="flex items-center gap-3"><Clock size={16} className={idx === activeIndex ? 'text-orange-400' : 'text-gray-400'}/><span>{term}</span></div>
+                                          <button onClick={(e) => removeHistoryItem(e, term)} className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1" title="Remove from history"><X size={14}/></button>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                  <div>
+                                    <div className="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1"><TrendingUp size={12}/> Trending Now</div>
+                                    {MOCK_SUGGESTIONS.slice(0, 5).map((term, idx) => {
+                                      const globalIdx = recentSearches.length + idx;
+                                      return (
+                                        <div key={`trending-${term}`} className={`flex items-center gap-3 px-4 py-2 cursor-pointer transition-colors ${globalIdx === activeIndex ? 'bg-orange-50 text-orange-700' : 'hover:bg-gray-50 text-gray-700'}`} onClick={() => handleSearch(term)} onMouseEnter={() => setActiveIndex(globalIdx)}>
+                                          <TrendingUp size={16} className={globalIdx === activeIndex ? 'text-orange-400' : 'text-gray-400'}/><span>{term}</span>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
                                 </div>
-                                <button 
-                                   onClick={(e) => removeHistoryItem(e, term)}
-                                   className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1"
-                                   title="Remove from history"
-                                >
-                                   <X size={14}/>
-                                </button>
-                             </div>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Trending Now */}
-                      <div>
-                          <div className="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1">
-                             <TrendingUp size={12}/> Trending Now
-                          </div>
-                          {MOCK_SUGGESTIONS.slice(0, 5).map((term, idx) => {
-                             const globalIdx = recentSearches.length + idx;
-                             return (
-                               <div 
-                                 key={`trending-${term}`} 
-                                 className={`flex items-center gap-3 px-4 py-2 cursor-pointer transition-colors ${globalIdx === activeIndex ? 'bg-orange-50 text-orange-700' : 'hover:bg-gray-50 text-gray-700'}`}
-                                 onClick={() => handleSearch(term)}
-                                 onMouseEnter={() => setActiveIndex(globalIdx)}
-                               >
-                                  <TrendingUp size={16} className={globalIdx === activeIndex ? 'text-orange-400' : 'text-gray-400'}/>
-                                  <span>{term}</span>
-                               </div>
-                             );
-                          })}
+                              ) : (
+                                <div className="py-2">
+                                  {filteredSuggestions.length > 0 ? (
+                                    filteredSuggestions.map((term, idx) => (
+                                      <div key={`suggest-${term}`} className={`flex items-center gap-3 px-4 py-2 cursor-pointer transition-colors ${idx === activeIndex ? 'bg-orange-50 text-orange-700' : 'hover:bg-gray-50 text-gray-700'}`} onClick={() => handleSearch(term)} onMouseEnter={() => setActiveIndex(idx)}>
+                                        <Search size={16} className={idx === activeIndex ? 'text-orange-400' : 'text-gray-400'}/>
+                                        {/* OWASP A03: Safe Text Rendering */}
+                                        <span>
+                                          {term.split(new RegExp(`(${query})`, 'gi')).map((part, i) => (
+                                            part.toLowerCase() === query.toLowerCase() ? <span key={i} className="font-bold text-slate-900">{part}</span> : part
+                                          ))}
+                                        </span>
+                                      </div>
+                                    ))
+                                  ) : (
+                                    <div className="px-4 py-4 text-sm text-gray-500 text-center italic">No auto-suggestions found for "{query}"</div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          )}
                       </div>
-                   </div>
-                )}
+                  </div>
+              </div>
 
-                {/* If Query matches: Show Suggestions */}
-                {query !== '' && (
-                   <div className="py-2">
-                      {filteredSuggestions.length > 0 ? (
-                        filteredSuggestions.map((term, idx) => (
-                           <div 
-                             key={`suggest-${term}`} 
-                             className={`flex items-center gap-3 px-4 py-2 cursor-pointer transition-colors ${idx === activeIndex ? 'bg-orange-50 text-orange-700' : 'hover:bg-gray-50 text-gray-700'}`}
-                             onClick={() => handleSearch(term)}
-                             onMouseEnter={() => setActiveIndex(idx)}
-                           >
-                              <Search size={16} className={idx === activeIndex ? 'text-orange-400' : 'text-gray-400'}/>
-                              <span dangerouslySetInnerHTML={{
-                                  __html: term.replace(new RegExp(`(${query})`, 'gi'), '<span class="font-bold text-slate-900">$1</span>')
-                              }} />
-                           </div>
-                        ))
-                      ) : (
-                          <div className="px-4 py-4 text-sm text-gray-500 text-center italic">
-                              No auto-suggestions found for "{query}"
+              {/* Right Section */}
+              <div className="flex flex-shrink-0 items-center justify-end gap-2 sm:gap-4">
+                  <button className="p-2 text-slate-600 hover:text-orange-500 md:hidden">
+                    <Search size={22}/>
+                  </button>
+
+                  {modules.events && (
+                    <Link to="/events" className="hidden lg:flex flex-col items-center hover:text-orange-500 group transition-colors">
+                      <span className="text-xs font-semibold bg-gray-100 px-2 py-0.5 rounded-full group-hover:bg-orange-100 mb-0.5 transition-colors">New</span>
+                      <span className="text-sm font-medium flex items-center gap-1"><Calendar size={14}/> {t('nav_events')}</span>
+                    </Link>
+                  )}
+                  <Link to="/rfq" className="hidden lg:flex flex-col items-center hover:text-orange-500 group transition-colors">
+                    <span className="text-xs font-semibold bg-gray-100 px-2 py-0.5 rounded-full group-hover:bg-orange-100 mb-0.5 transition-colors">AI Powered</span>
+                    <span className="text-sm font-medium">{t('nav_rfq')}</span>
+                  </Link>
+                  
+                  <div className="h-8 w-px bg-slate-200 hidden lg:block"></div>
+                  
+                  <Link to="/profile" className="hidden lg:flex flex-col items-center hover:text-orange-500 cursor-pointer transition-colors group">
+                    <MessageSquare size={20} className="group-hover:scale-110 transition-transform"/>
+                    <span className="text-xs mt-1 font-bold">{t('nav_messages')}</span>
+                  </Link>
+
+                  <button onClick={openCart} className="flex flex-col items-center hover:text-orange-500 cursor-pointer transition-colors group relative">
+                    {cartCount > 0 && (
+                      <div className="absolute -top-1 -right-2 bg-orange-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center border-2 border-white">
+                        {cartCount}
+                      </div>
+                    )}
+                    <ShoppingCart size={20} className="group-hover:scale-110 transition-transform"/>
+                    <span className="text-xs mt-1 font-bold">Cart</span>
+                  </button>
+
+                  <div className="relative group z-50">
+                    <Link to={currentUser ? "/profile" : "/login"} className="flex flex-col items-center hover:text-orange-500 transition-colors cursor-pointer">
+                      <User size={20} className={`group-hover:scale-110 transition-transform ${currentUser ? 'text-blue-500' : ''}`}/>
+                      <span className="text-xs mt-1 font-bold whitespace-nowrap">{currentUser ? 'Account' : 'Sign In'}</span>
+                    </Link>
+                    <div className="absolute right-0 top-full pt-2 w-72 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                      <div className="bg-white rounded-xl shadow-xl border border-gray-100 p-5 relative mt-2">
+                        <div className="absolute -top-2 right-6 w-4 h-4 bg-white transform rotate-45 border-t border-l border-gray-100"></div>
+                        {!currentUser ? (
+                          <div className="text-center space-y-4">
+                            <div><p className="text-sm text-gray-500 mb-1">Welcome to TradeGenius</p><p className="text-xs text-gray-400">Join 150M+ traders worldwide</p></div>
+                            <div className="flex flex-col gap-2"><Link to="/login" className="block w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-2.5 rounded-lg transition-colors shadow-md">Sign In</Link><Link to="/join" className="block w-full bg-orange-50 text-orange-600 font-bold py-2.5 rounded-lg hover:bg-orange-100 transition-colors">Join Free</Link></div>
+                            <div className="border-t border-gray-100 pt-4 mt-2 text-left">
+                              <p className="text-xs font-bold text-gray-400 uppercase mb-2 tracking-wider">Quick Actions</p>
+                              <Link to="/login" className="flex items-center gap-2 text-sm text-gray-600 hover:text-orange-500 py-1.5 transition-colors"><Package size={14}/> My Orders</Link>
+                              <Link to="/login" className="flex items-center gap-2 text-sm text-gray-600 hover:text-orange-500 py-1.5 transition-colors"><MessageSquare size={14}/> Message Center</Link>
+                              <Link to="/rfq" className="flex items-center gap-2 text-sm text-gray-600 hover:text-orange-500 py-1.5 transition-colors"><PenTool size={14}/> Submit RFQ</Link>
+                            </div>
                           </div>
-                      )}
-                   </div>
-                )}
+                        ) : (
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-3 pb-4 border-b border-gray-100 mb-2">
+                              <div className="w-12 h-12 bg-gradient-to-br from-orange-400 to-red-500 text-white rounded-full flex items-center justify-center font-bold text-lg shadow-md">{currentUser.name ? currentUser.name.charAt(0) : 'U'}</div>
+                              <div className="overflow-hidden"><p className="text-sm font-bold text-slate-800 truncate">{currentUser.name || 'User'}</p><p className="text-xs text-slate-500 truncate">{currentUser.company || currentUser.email}</p><span className="inline-block mt-1 text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-bold">{currentUser.role === 'seller' ? 'Supplier Account' : 'Buyer Account'}</span></div>
+                            </div>
+                            <div className="space-y-1">
+                              <Link to="/dashboard" className="flex items-center gap-3 text-sm text-gray-700 hover:bg-gray-50 hover:text-orange-600 py-2 px-2 rounded-lg transition-colors"><LayoutDashboard size={16}/> Dashboard</Link>
+                              <Link to="/profile" className="flex items-center gap-3 text-sm text-gray-700 hover:bg-gray-50 hover:text-orange-600 py-2 px-2 rounded-lg transition-colors"><User size={16}/> My Profile</Link>
+                              <Link to="/dashboard" className="flex items-center gap-3 text-sm text-gray-700 hover:bg-gray-50 hover:text-orange-600 py-2 px-2 rounded-lg transition-colors"><Package size={16}/> Orders & RFQs</Link>
+                              <Link to="/profile" className="flex items-center gap-3 text-sm text-gray-700 hover:bg-gray-50 hover:text-orange-600 py-2 px-2 rounded-lg transition-colors"><CreditCard size={16}/> Payments</Link>
+                            </div>
+                            <div className="border-t border-gray-100 pt-2 mt-2">
+                              <button onClick={handleLogout} className="flex items-center gap-3 text-sm text-red-500 hover:bg-red-50 py-2 px-2 rounded-lg w-full text-left transition-colors font-medium"><LogOut size={16}/> Sign Out</button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <button className="md:hidden text-gray-700">
+                    <Menu size={24} />
+                  </button>
               </div>
-            )}
-          </div>
 
-          {/* Right Actions - Main Nav */}
-          <div className="flex items-center space-x-6 text-gray-600">
-            {modules.events && (
-              <Link to="/events" className="hidden lg:flex flex-col items-center hover:text-orange-500 group transition-colors">
-                <span className="text-xs font-semibold bg-gray-100 px-2 py-0.5 rounded-full group-hover:bg-orange-100 mb-0.5 transition-colors">New</span>
-                <span className="text-sm font-medium flex items-center gap-1"><Calendar size={14}/> {t('nav_events')}</span>
-              </Link>
-            )}
-            <Link to="/rfq" className="hidden lg:flex flex-col items-center hover:text-orange-500 group transition-colors">
-              <span className="text-xs font-semibold bg-gray-100 px-2 py-0.5 rounded-full group-hover:bg-orange-100 mb-0.5 transition-colors">AI Powered</span>
-              <span className="text-sm font-medium">{t('nav_rfq')}</span>
-            </Link>
-            
-            <div className="flex flex-col items-center hover:text-orange-500 cursor-pointer transition-colors group">
-              <MessageSquare size={20} className="group-hover:scale-110 transition-transform"/>
-              <span className="text-xs mt-1 font-bold">{t('nav_messages')}</span>
-            </div>
-
-            {/* Account Dropdown Section */}
-            <div className="relative group z-50">
-              <Link to={currentUser ? "/profile" : "/login"} className="flex flex-col items-center hover:text-orange-500 transition-colors cursor-pointer">
-                <User size={20} className={`group-hover:scale-110 transition-transform ${currentUser ? 'text-orange-500' : ''}`}/>
-                <span className="text-xs mt-1 font-bold whitespace-nowrap">{currentUser ? 'My Account' : 'Sign In / Join'}</span>
-              </Link>
-
-              {/* Dropdown Menu */}
-              <div className="absolute right-0 top-full pt-2 w-72 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
-                <div className="bg-white rounded-xl shadow-xl border border-gray-100 p-5 relative mt-2">
-                   {/* Triangle tip */}
-                   <div className="absolute -top-2 right-6 w-4 h-4 bg-white transform rotate-45 border-t border-l border-gray-100"></div>
-                   
-                   {!currentUser ? (
-                     <div className="text-center space-y-4">
-                        <div>
-                          <p className="text-sm text-gray-500 mb-1">Welcome to TradeGenius</p>
-                          <p className="text-xs text-gray-400">Join 150M+ traders worldwide</p>
-                        </div>
-                        <div className="flex flex-col gap-2">
-                          <Link to="/login" className="block w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-2.5 rounded-lg transition-colors shadow-md">
-                            Sign In
-                          </Link>
-                          <Link to="/join" className="block w-full bg-orange-50 text-orange-600 font-bold py-2.5 rounded-lg hover:bg-orange-100 transition-colors">
-                            Join Free
-                          </Link>
-                        </div>
-                        <div className="border-t border-gray-100 pt-4 mt-2 text-left">
-                           <p className="text-xs font-bold text-gray-400 uppercase mb-2 tracking-wider">Quick Actions</p>
-                           <Link to="/login" className="flex items-center gap-2 text-sm text-gray-600 hover:text-orange-500 py-1.5 transition-colors">
-                              <Package size={14}/> My Orders
-                           </Link>
-                           <Link to="/login" className="flex items-center gap-2 text-sm text-gray-600 hover:text-orange-500 py-1.5 transition-colors">
-                              <MessageSquare size={14}/> Message Center
-                           </Link>
-                           <Link to="/rfq" className="flex items-center gap-2 text-sm text-gray-600 hover:text-orange-500 py-1.5 transition-colors">
-                              <PenTool size={14}/> Submit RFQ
-                           </Link>
-                        </div>
-                     </div>
-                   ) : (
-                     /* Logged In View */
-                     <div className="space-y-2">
-                        <div className="flex items-center gap-3 pb-4 border-b border-gray-100 mb-2">
-                           <div className="w-12 h-12 bg-gradient-to-br from-orange-400 to-red-500 text-white rounded-full flex items-center justify-center font-bold text-lg shadow-md">
-                              {currentUser.name ? currentUser.name.charAt(0) : 'U'}
-                           </div>
-                           <div className="overflow-hidden">
-                              <p className="text-sm font-bold text-slate-800 truncate">{currentUser.name || 'User'}</p>
-                              <p className="text-xs text-slate-500 truncate">{currentUser.company || currentUser.email}</p>
-                              <span className="inline-block mt-1 text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-bold">
-                                {currentUser.role === 'seller' ? 'Supplier Account' : 'Buyer Account'}
-                              </span>
-                           </div>
-                        </div>
-                        
-                        <div className="space-y-1">
-                          <Link to="/dashboard" className="flex items-center gap-3 text-sm text-gray-700 hover:bg-gray-50 hover:text-orange-600 py-2 px-2 rounded-lg transition-colors">
-                             <LayoutDashboard size={16}/> Dashboard
-                          </Link>
-                          <Link to="/profile" className="flex items-center gap-3 text-sm text-gray-700 hover:bg-gray-50 hover:text-orange-600 py-2 px-2 rounded-lg transition-colors">
-                             <User size={16}/> My Profile
-                          </Link>
-                          <Link to="/dashboard" className="flex items-center gap-3 text-sm text-gray-700 hover:bg-gray-50 hover:text-orange-600 py-2 px-2 rounded-lg transition-colors">
-                             <Package size={16}/> Orders & RFQs
-                          </Link>
-                          <Link to="/profile" className="flex items-center gap-3 text-sm text-gray-700 hover:bg-gray-50 hover:text-orange-600 py-2 px-2 rounded-lg transition-colors">
-                             <CreditCard size={16}/> Payments
-                          </Link>
-                        </div>
-
-                        <div className="border-t border-gray-100 pt-2 mt-2">
-                          <button 
-                            onClick={handleLogout} 
-                            className="flex items-center gap-3 text-sm text-red-500 hover:bg-red-50 py-2 px-2 rounded-lg w-full text-left transition-colors font-medium"
-                          >
-                             <LogOut size={16}/> Sign Out
-                          </button>
-                        </div>
-                     </div>
-                   )}
-                </div>
-              </div>
-            </div>
-
-            <button className="md:hidden text-gray-700">
-              <Menu size={24} />
-            </button>
           </div>
         </div>
       </nav>

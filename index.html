@@ -1,34 +1,92 @@
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://esm.sh https://cdn.tailwindcss.com https://fonts.googleapis.com https://fonts.gstatic.com https://images.unsplash.com https://picsum.photos https://via.placeholder.com https://i.pravatar.cc https://commondatastorage.googleapis.com; img-src 'self' data: https:; media-src 'self' https:; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://esm.sh; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;">
+    
     <title>TradeGenius AI | Global B2B Marketplace</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-      body { font-family: 'Inter', sans-serif; }
-      /* Custom scrollbar for better B2B density feel */
+      body { font-family: 'Inter', 'Noto Sans Arabic', sans-serif; }
       ::-webkit-scrollbar { width: 8px; }
       ::-webkit-scrollbar-track { background: #f1f5f9; }
       ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
       ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      
+      @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+      .animate-fade-in { animation: fade-in 0.5s ease-out forwards; }
+      
+      @keyframes fade-in-up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+      .animate-fade-in-up { animation: fade-in-up 0.5s ease-out forwards; }
+
+      @keyframes scale-in { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+      .animate-scale-in { animation: scale-in 0.3s ease-out forwards; }
+
+      @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+      .animate-marquee { display: inline-block; animation: marquee 30s linear infinite; }
     </style>
-  <script type="importmap">
+    
+    <!-- Robust Polyfills -->
+    <script>
+      window.process = window.process || { env: { NODE_ENV: 'production' } };
+    </script>
+
+    <script type="importmap">
 {
   "imports": {
-    "react": "https://esm.sh/react@^19.2.1",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.1/",
-    "react/": "https://esm.sh/react@^19.2.1/",
-    "@google/genai": "https://esm.sh/@google/genai@^1.32.0",
-    "recharts": "https://esm.sh/recharts@^3.5.1",
-    "react-router-dom": "https://esm.sh/react-router-dom@^7.10.1",
-    "lucide-react": "https://esm.sh/lucide-react@^0.559.0"
+    "react": "https://esm.sh/react@18.2.0",
+    "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+    "react-dom": "https://esm.sh/react-dom@18.2.0",
+    "@google/genai": "https://esm.sh/@google/genai@0.1.1",
+    "recharts": "https://esm.sh/recharts@2.10.3?external=react,react-dom",
+    "react-router-dom": "https://esm.sh/react-router-dom@6.21.1?external=react,react-dom",
+    "lucide-react": "https://esm.sh/lucide-react@0.294.0?external=react,react-dom",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/"
   }
 }
 </script>
-</head>
+    <script type="module" src="./index.tsx"></script>
+  </head>
   <body>
-    <div id="root"></div>
+    <div id="root" class="min-h-screen flex items-center justify-center bg-slate-50 text-slate-400 font-sans">
+      <div class="text-center" id="loading-container">
+        <div class="mb-4">
+          <svg class="animate-spin h-10 w-10 text-orange-500 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+        </div>
+        <h2 class="text-xl font-bold text-slate-700">Loading TradeGenius AI...</h2>
+        <p class="text-sm mt-2">Connecting to global markets</p>
+      </div>
+    </div>
+    
+    <script>
+      // Fallback: If React doesn't mount within 8 seconds, show an error.
+      setTimeout(() => {
+        const root = document.getElementById('root');
+        const loader = document.getElementById('loading-container');
+        // Check if React has cleared the loader (root should have children other than the loader logic if mounted)
+        // If the loader is still visible, we assume failure.
+        if (loader && document.body.contains(loader)) {
+           loader.innerHTML = `
+             <div class="text-red-500 mb-4">
+               <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+               <h2 class="text-xl font-bold">Failed to Load Application</h2>
+             </div>
+             <p class="text-slate-600 max-w-md mx-auto mb-4">The application script failed to initialize. This is likely due to a network restriction or browser compatibility issue.</p>
+             <button onclick="window.location.reload()" class="bg-slate-800 text-white px-6 py-2 rounded-lg font-bold hover:bg-slate-700 transition">Retry</button>
+           `;
+        }
+      }, 8000);
+    </script>
   </body>
 </html>

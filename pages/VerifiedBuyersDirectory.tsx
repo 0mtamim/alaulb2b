@@ -3,11 +3,12 @@ import React, { useState } from 'react';
 import { 
     Users, ShieldCheck, Lock, Search, Filter, Globe, 
     CreditCard, Calendar, CheckCircle, Activity, 
-    DollarSign, Star, Zap, Building2, Crown
+    DollarSign, Star, Zap, Building2, Crown, X
 } from 'lucide-react';
 import { calculateBuyerMatch } from '../services/gemini';
 
 // Mock Verified Buyers Data
+// FIX: Added 'tier' and 'verified' properties to each buyer object to match their usage in the component.
 const VERIFIED_BUYERS = [
     {
         id: 'vb1',
@@ -20,7 +21,9 @@ const VERIFIED_BUYERS = [
         lastActive: '2 hours ago',
         matchScore: 95,
         rfqsPosted: 124,
-        preferredTerms: 'Net 60'
+        preferredTerms: 'Net 60',
+        tier: 'Enterprise',
+        verified: true
     },
     {
         id: 'vb2',
@@ -33,7 +36,9 @@ const VERIFIED_BUYERS = [
         lastActive: '1 day ago',
         matchScore: 88,
         rfqsPosted: 45,
-        preferredTerms: 'LC'
+        preferredTerms: 'LC',
+        tier: 'Enterprise',
+        verified: true
     },
     {
         id: 'vb3',
@@ -46,7 +51,9 @@ const VERIFIED_BUYERS = [
         lastActive: '30 mins ago',
         matchScore: 72,
         rfqsPosted: 89,
-        preferredTerms: 'T/T'
+        preferredTerms: 'T/T',
+        tier: 'Pro',
+        verified: true
     },
     {
         id: 'vb4',
@@ -59,7 +66,9 @@ const VERIFIED_BUYERS = [
         lastActive: '5 hours ago',
         matchScore: 81,
         rfqsPosted: 32,
-        preferredTerms: 'Net 30'
+        preferredTerms: 'Net 30',
+        tier: 'Pro',
+        verified: true
     },
     {
         id: 'vb5',
@@ -72,7 +81,9 @@ const VERIFIED_BUYERS = [
         lastActive: '2 days ago',
         matchScore: 65,
         rfqsPosted: 15,
-        preferredTerms: 'LC'
+        preferredTerms: 'LC',
+        tier: 'Enterprise',
+        verified: true
     }
 ];
 
@@ -178,10 +189,10 @@ const VerifiedBuyersDirectory: React.FC = () => {
                                 <label className="text-xs font-bold text-slate-500 uppercase mb-2 block">Industry</label>
                                 <div className="space-y-2">
                                     {['Consumer Electronics', 'Textiles', 'Industrial Machinery', 'Furniture'].map(ind => (
-                                        <label key={ind} className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer hover:text-blue-600">
+                                        <label key={ind} className={`flex items-center gap-2 text-sm ${isPremiumSupplier ? 'text-slate-600 cursor-pointer hover:text-blue-600' : 'text-slate-400 cursor-not-allowed'}`}>
                                             <input 
                                                 type="checkbox" 
-                                                className="rounded text-blue-600"
+                                                className="rounded text-blue-600 disabled:text-gray-300"
                                                 checked={filters.industry.includes(ind)}
                                                 onChange={() => handleIndustryToggle(ind)}
                                                 disabled={!isPremiumSupplier}
@@ -196,7 +207,7 @@ const VerifiedBuyersDirectory: React.FC = () => {
                             <div>
                                 <label className="text-xs font-bold text-slate-500 uppercase mb-2 block">Purchasing Volume</label>
                                 <select 
-                                    className="w-full p-2 border border-gray-200 rounded text-sm bg-white"
+                                    className="w-full p-2 border border-gray-200 rounded text-sm bg-white disabled:bg-slate-100 disabled:text-slate-400"
                                     value={filters.minVolume}
                                     onChange={e => setFilters({...filters, minVolume: e.target.value})}
                                     disabled={!isPremiumSupplier}
@@ -214,7 +225,7 @@ const VerifiedBuyersDirectory: React.FC = () => {
                                     {['A', 'AA', 'AAA'].map(rate => (
                                         <button 
                                             key={rate}
-                                            className="px-3 py-1 bg-white border border-gray-200 rounded text-xs font-bold hover:border-green-500 hover:text-green-600 disabled:opacity-50"
+                                            className="px-3 py-1 bg-white border border-gray-200 rounded text-xs font-bold hover:border-green-500 hover:text-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
                                             disabled={!isPremiumSupplier}
                                         >
                                             {rate}
@@ -242,8 +253,8 @@ const VerifiedBuyersDirectory: React.FC = () => {
                                 <Search size={18} className="absolute left-3 top-2.5 text-gray-400"/>
                                 <input 
                                     type="text" 
-                                    placeholder="Search by company name, country..." 
-                                    className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                                    placeholder={isPremiumSupplier ? "Search by company name, country..." : "Search by country or industry..."}
+                                    className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 disabled:bg-slate-100"
                                     value={searchQuery}
                                     onChange={e => setSearchQuery(e.target.value)}
                                     disabled={!isPremiumSupplier}
@@ -255,7 +266,7 @@ const VerifiedBuyersDirectory: React.FC = () => {
                         </div>
 
                         {/* Content Area */}
-                        <div className="flex-1 overflow-y-auto bg-gray-50 p-6">
+                        <div className="flex-1 overflow-y-auto bg-slate-50/50 p-6">
                             {!isPremiumSupplier ? (
                                 <div className="h-full flex flex-col items-center justify-center text-center max-w-md mx-auto">
                                     <div className="w-20 h-20 bg-slate-200 rounded-full flex items-center justify-center mb-6">
@@ -276,68 +287,65 @@ const VerifiedBuyersDirectory: React.FC = () => {
                                 <div className="space-y-4">
                                     {filteredBuyers.map(buyer => (
                                         <div key={buyer.id} className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-lg transition-shadow relative group">
-                                            <div className="flex flex-col md:flex-row justify-between gap-6">
+                                            {buyer.verified && (
+                                                <div className="absolute top-4 left-4 bg-green-100 text-green-800 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5 border border-green-200 shadow-sm">
+                                                    <ShieldCheck size={14} className="text-green-600"/>
+                                                    Verified Buyer
+                                                </div>
+                                            )}
+                                            {buyer.tier === 'Enterprise' && (
+                                                <div className="absolute top-4 right-4 bg-purple-100 text-purple-700 text-xs px-2 py-1 rounded-full font-bold flex items-center gap-1">
+                                                    <Crown size={12}/> Enterprise Buyer
+                                                </div>
+                                            )}
+
+                                            <div className="flex flex-col md:flex-row gap-6">
                                                 <div className="flex-1">
-                                                    <div className="flex items-center gap-3 mb-2">
-                                                        <h3 className="text-xl font-bold text-slate-800">{buyer.name}</h3>
-                                                        <span className="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
-                                                            <CheckCircle size={10}/> Verified {buyer.verifiedSince}
-                                                        </span>
-                                                        {buyer.creditRating === 'AAA' && (
-                                                            <span className="bg-yellow-100 text-yellow-700 text-xs px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
-                                                                <Crown size={10}/> Top Credit
-                                                            </span>
-                                                        )}
-                                                    </div>
+                                                    <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2 mt-6">
+                                                        {buyer.name}
+                                                    </h3>
+                                                    <div className="text-sm text-slate-500 flex items-center gap-1.5"><Globe size={14}/> {buyer.country} • {buyer.industry}</div>
                                                     
-                                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mt-4">
+                                                    <div className="mt-4 grid grid-cols-3 gap-4 text-center bg-slate-50/50 p-3 rounded-lg border border-slate-100">
                                                         <div>
-                                                            <div className="text-xs text-slate-400 uppercase font-bold mb-1">Location</div>
-                                                            <div className="flex items-center gap-1 font-medium text-slate-700">
-                                                                <Globe size={14}/> {buyer.country}
-                                                            </div>
+                                                            <div className="text-xs text-slate-400 font-bold uppercase">Volume</div>
+                                                            <div className="font-bold text-green-600">{buyer.purchasingVolume}</div>
                                                         </div>
                                                         <div>
-                                                            <div className="text-xs text-slate-400 uppercase font-bold mb-1">Annual Volume</div>
-                                                            <div className="flex items-center gap-1 font-medium text-green-600">
-                                                                <DollarSign size={14}/> {buyer.purchasingVolume}
-                                                            </div>
+                                                            <div className="text-xs text-slate-400 font-bold uppercase">Credit</div>
+                                                            <div className="font-bold text-slate-800">{buyer.creditRating}</div>
                                                         </div>
                                                         <div>
-                                                            <div className="text-xs text-slate-400 uppercase font-bold mb-1">Industry</div>
-                                                            <div className="flex items-center gap-1 font-medium text-slate-700">
-                                                                <Building2 size={14}/> {buyer.industry}
-                                                            </div>
-                                                        </div>
-                                                        <div>
-                                                            <div className="text-xs text-slate-400 uppercase font-bold mb-1">Activity</div>
-                                                            <div className="flex items-center gap-1 font-medium text-slate-700">
-                                                                <Activity size={14}/> {buyer.lastActive}
-                                                            </div>
+                                                            <div className="text-xs text-slate-400 font-bold uppercase">Activity</div>
+                                                            <div className="font-bold text-slate-800">{buyer.lastActive}</div>
                                                         </div>
                                                     </div>
                                                 </div>
 
-                                                <div className="flex flex-col gap-2 min-w-[160px] border-l border-gray-100 pl-6 justify-center">
-                                                    <div className="text-center mb-2">
-                                                        <div className="text-xs text-slate-400 font-bold uppercase mb-1">Match Score</div>
-                                                        <div className="text-2xl font-bold text-blue-600">{buyer.matchScore}%</div>
+                                                <div className="w-full md:w-48 flex-shrink-0 md:border-l md:pl-6 border-gray-100 flex flex-col justify-between">
+                                                    <div>
+                                                        <div className="text-xs text-slate-400 font-bold uppercase text-center mb-2">AI Match Score</div>
+                                                        <div className="relative w-24 h-24 mx-auto">
+                                                            <svg className="w-full h-full" viewBox="0 0 36 36" transform="rotate(-90)">
+                                                                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#e6e6e6" strokeWidth="3" />
+                                                                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#4c51bf" strokeWidth="3" strokeDasharray={`${buyer.matchScore}, 100`} strokeLinecap="round" />
+                                                            </svg>
+                                                            <div className="absolute inset-0 flex items-center justify-center text-2xl font-bold text-indigo-700">{buyer.matchScore}<span className="text-sm">%</span></div>
+                                                        </div>
                                                     </div>
-                                                    <button 
-                                                        onClick={() => handleMatchAnalysis(buyer)}
-                                                        className="w-full bg-blue-50 text-blue-600 font-bold text-xs py-2 rounded border border-blue-100 hover:bg-blue-100 flex items-center justify-center gap-1"
-                                                    >
-                                                        <Zap size={12}/> Analyze Needs
-                                                    </button>
-                                                    <button className="w-full bg-slate-900 text-white font-bold text-xs py-2 rounded hover:bg-slate-800">
-                                                        Connect
-                                                    </button>
+                                                    <div className="space-y-2 mt-4 text-center">
+                                                        <button 
+                                                            onClick={() => handleMatchAnalysis(buyer)}
+                                                            className="w-full bg-indigo-50 text-indigo-600 font-bold text-xs py-2 rounded border border-indigo-100 hover:bg-indigo-100 flex items-center justify-center gap-1"
+                                                        >
+                                                            <Zap size={12}/> Analyze Needs
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </div>
 
-                                            {/* AI Analysis Dropdown */}
                                             {selectedBuyerId === buyer.id && (
-                                                <div className="mt-4 pt-4 border-t border-gray-100 bg-slate-50 -mx-6 -mb-6 p-6 rounded-b-xl animate-fade-in">
+                                                <div className="mt-4 pt-4 border-t border-gray-100 bg-slate-50/50 -mx-6 -mb-6 p-6 rounded-b-xl animate-fade-in">
                                                     <h4 className="font-bold text-slate-800 mb-2 flex items-center gap-2">
                                                         <Zap size={16} className="text-yellow-500"/> AI Buyer Analysis
                                                     </h4>
@@ -366,6 +374,17 @@ const VerifiedBuyersDirectory: React.FC = () => {
                     </div>
                 </div>
             </div>
+            {analyzing && selectedBuyerId && (
+                <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 animate-fade-in">
+                     <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full">
+                        <div className="p-6 text-center">
+                           <Activity className="mx-auto text-indigo-500 animate-pulse" size={48}/>
+                           <h3 className="text-xl font-bold mt-4">Running AI Match Analysis...</h3>
+                           <p className="text-slate-500 mt-2">Comparing your profile against buyer's history and requirements.</p>
+                        </div>
+                     </div>
+                </div>
+            )}
         </div>
     );
 };

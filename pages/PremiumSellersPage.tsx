@@ -55,10 +55,10 @@ const PremiumSellersPage: React.FC = () => {
             <div className="container mx-auto px-4 py-12 grid grid-cols-1 lg:grid-cols-4 gap-8">
                 {/* Advanced Filters Sidebar */}
                 <div className="lg:col-span-1">
-                    <div className={`bg-white rounded-xl shadow-sm border border-gray-200 p-6 sticky top-24 ${!isPremiumUser ? 'relative overflow-hidden' : ''}`}>
+                    <div className={`bg-white rounded-xl shadow-sm border border-gray-200 p-6 sticky top-24`}>
                         
                         {!isPremiumUser && (
-                            <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-10 flex flex-col items-center justify-center p-6 text-center">
+                            <div className="absolute inset-0 bg-white/80 backdrop-blur-[2px] z-10 flex flex-col items-center justify-center p-6 text-center rounded-xl">
                                 <Lock size={48} className="text-slate-400 mb-4"/>
                                 <h3 className="text-lg font-bold text-slate-800 mb-2">Premium Filters Locked</h3>
                                 <p className="text-sm text-slate-500 mb-4">Upgrade to Pro to filter by Revenue, R&D Capacity, and Certifications.</p>
@@ -72,13 +72,13 @@ const PremiumSellersPage: React.FC = () => {
                             <Filter size={18}/> <span className="font-bold">Advanced Filters</span>
                         </div>
 
-                        <div className="space-y-6 opacity-100">
+                        <div className="space-y-6">
                             <div>
                                 <label className="text-xs font-bold text-slate-500 uppercase mb-2 flex items-center gap-1">
                                     <DollarSign size={12}/> Min. Revenue
                                 </label>
                                 <select 
-                                    className="w-full p-2 border border-gray-200 rounded text-sm"
+                                    className="w-full p-2 border border-gray-200 rounded text-sm bg-slate-50 disabled:bg-slate-100 disabled:cursor-not-allowed"
                                     disabled={!isPremiumUser}
                                     value={advancedFilter.minRevenue}
                                     onChange={e => setAdvancedFilter({...advancedFilter, minRevenue: e.target.value})}
@@ -95,7 +95,7 @@ const PremiumSellersPage: React.FC = () => {
                                     <Zap size={12}/> R&D Capacity
                                 </label>
                                 <select 
-                                    className="w-full p-2 border border-gray-200 rounded text-sm"
+                                    className="w-full p-2 border border-gray-200 rounded text-sm bg-slate-50 disabled:bg-slate-100 disabled:cursor-not-allowed"
                                     disabled={!isPremiumUser}
                                     value={advancedFilter.minRD}
                                     onChange={e => setAdvancedFilter({...advancedFilter, minRD: e.target.value})}
@@ -113,10 +113,10 @@ const PremiumSellersPage: React.FC = () => {
                                 </label>
                                 <div className="space-y-2">
                                     {['ISO 9001', 'ISO 14001', 'SA8000', 'CE', 'UL'].map(cert => (
-                                        <label key={cert} className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+                                        <label key={cert} className={`flex items-center gap-2 text-sm ${isPremiumUser ? 'text-slate-600 cursor-pointer' : 'text-slate-400 cursor-not-allowed'}`}>
                                             <input 
                                                 type="checkbox" 
-                                                className="rounded text-indigo-600"
+                                                className="rounded text-indigo-600 disabled:text-gray-300"
                                                 disabled={!isPremiumUser}
                                             /> {cert}
                                         </label>
@@ -140,44 +140,52 @@ const PremiumSellersPage: React.FC = () => {
                     )}
 
                     {SELLERS.map(seller => (
-                        <div key={seller.id} className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all relative overflow-hidden group">
+                        <div key={seller.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-xl transition-all relative overflow-hidden group">
                             {seller.premium && (
-                                <div className="absolute top-0 right-0 bg-yellow-400 text-slate-900 text-[10px] font-bold px-3 py-1 rounded-bl-lg flex items-center gap-1">
-                                    <Crown size={10}/> Premium Seller
+                                <div className="absolute top-0 right-0 bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg flex items-center gap-1 shadow-md">
+                                    <Crown size={12}/> Premium Partner
                                 </div>
                             )}
-                            
-                            <div className="flex flex-col md:flex-row justify-between gap-6">
-                                <div>
-                                    <div className="flex items-center gap-3 mb-2">
-                                        <h3 className="text-xl font-bold text-slate-800">{seller.name}</h3>
-                                        {seller.verified && <CheckCircle size={18} className="text-blue-500" fill="white"/>}
-                                    </div>
-                                    <div className="text-sm text-slate-500 flex items-center gap-4 mb-4">
-                                        <span className="flex items-center gap-1"><Globe size={14}/> {seller.country}</span>
-                                        <span className="flex items-center gap-1"><Users size={14}/> {seller.employees} Employees</span>
-                                    </div>
-                                    
-                                    <div className="flex flex-wrap gap-2">
-                                        {seller.certs.map((c, i) => (
-                                            <span key={i} className="text-xs border border-gray-200 px-2 py-1 rounded bg-gray-50 text-slate-600">{c}</span>
-                                        ))}
-                                    </div>
-                                </div>
 
-                                <div className={`flex flex-col justify-center min-w-[200px] border-l border-gray-100 pl-6 ${!isPremiumUser ? 'filter blur-[2px] select-none opacity-50 relative' : ''}`}>
-                                    <div className="mb-3">
-                                        <div className="text-xs text-slate-400 uppercase font-bold">Annual Revenue</div>
-                                        <div className="text-lg font-bold text-green-600">{seller.revenue}</div>
-                                    </div>
-                                    <div>
-                                        <div className="text-xs text-slate-400 uppercase font-bold">R&D Staff</div>
-                                        <div className="text-lg font-bold text-indigo-600">{seller.rdStaff}</div>
-                                    </div>
+                            {/* Header */}
+                            <div className="flex justify-between items-start mb-4">
+                                <div>
+                                    <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                                        {seller.name}
+                                        {seller.verified && <CheckCircle size={18} className="text-blue-500"/>}
+                                    </h3>
+                                    <div className="text-sm text-slate-500 flex items-center gap-1"><Globe size={14}/> {seller.country}</div>
                                 </div>
                             </div>
 
-                            <div className="mt-6 pt-6 border-t border-gray-100 flex justify-end gap-3">
+                            {/* Stats Grid */}
+                            <div className={`grid grid-cols-3 gap-4 py-4 border-y border-gray-100 mb-4 text-center ${!isPremiumUser ? 'filter blur-[3px] select-none pointer-events-none' : ''}`}>
+                                <div>
+                                    <div className="text-xs text-slate-400 font-bold uppercase flex items-center justify-center gap-1 mb-1"><DollarSign size={12}/> Revenue</div>
+                                    <div className="text-lg font-bold text-green-600">{seller.revenue}</div>
+                                </div>
+                                <div>
+                                    <div className="text-xs text-slate-400 font-bold uppercase flex items-center justify-center gap-1 mb-1"><Users size={12}/> Employees</div>
+                                    <div className="text-lg font-bold text-slate-800">{seller.employees}</div>
+                                </div>
+                                <div>
+                                    <div className="text-xs text-slate-400 font-bold uppercase flex items-center justify-center gap-1 mb-1"><Zap size={12}/> R&D Staff</div>
+                                    <div className="text-lg font-bold text-indigo-600">{seller.rdStaff}</div>
+                                </div>
+                            </div>
+                            
+                            {/* Certifications */}
+                            <div>
+                                <h4 className="text-xs font-bold text-slate-400 uppercase mb-2">Certifications</h4>
+                                <div className="flex flex-wrap gap-2">
+                                    {seller.certs.map((c, i) => (
+                                        <span key={i} className="text-xs border border-gray-200 px-2 py-1 rounded bg-gray-50 text-slate-600 font-medium">{c}</span>
+                                    ))}
+                                </div>
+                            </div>
+                            
+                            {/* Action Footer */}
+                            <div className="mt-6 pt-4 border-t border-gray-100 flex justify-end gap-3">
                                 <Link to={`/supplier/s${seller.id}`} className="px-4 py-2 border border-gray-200 text-slate-600 rounded-lg text-sm font-bold hover:bg-gray-50">
                                     View Profile
                                 </Link>

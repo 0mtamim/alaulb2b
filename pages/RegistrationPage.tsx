@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { User, Building2, Store, Mail, Lock, Phone, ArrowRight, CheckCircle, Upload, Globe, AlertTriangle, FileText, MapPin, DollarSign, Calendar, Loader2, ShieldCheck, Briefcase } from 'lucide-react';
 import { verifyDocumentOCR, performRiskAssessment } from '../services/gemini';
+import { validatePasswordStrength } from '../utils/security'; // New Import
 
 type RoleType = 'buyer' | 'seller' | 'partner';
 
@@ -15,6 +16,7 @@ const RegistrationPage: React.FC = () => {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [verificationStatus, setVerificationStatus] = useState<'idle' | 'scanning' | 'verified' | 'failed'>('idle');
+  const [passwordError, setPasswordError] = useState('');
 
   // Unified Form State (Superset of all fields)
   const [formData, setFormData] = useState({
@@ -23,7 +25,8 @@ const RegistrationPage: React.FC = () => {
     email: '',
     password: '',
     phone: '',
-    otp: '',
+    email_otp: '',
+    phone_otp: '',
     
     // Buyer Specific
     sourcing_interests: [] as string[],
@@ -46,6 +49,16 @@ const RegistrationPage: React.FC = () => {
     investment_budget: '',
     current_role: '',
   });
+  
+  const [verification, setVerification] = useState({
+    emailCode: '', // The code "sent" to the user
+    phoneOtp: '',  // The OTP "sent" to the user
+    emailVerified: false,
+    phoneVerified: false,
+    emailCodeSent: false,
+    phoneOtpSent: false,
+    error: '',
+  });
 
   const [files, setFiles] = useState<Record<string, File | null>>({});
 
@@ -60,7 +73,14 @@ const RegistrationPage: React.FC = () => {
 
   // --- Handlers ---
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+
+    // OWASP A07: Real-time password check
+    if (name === 'password') {
+        const { valid, message } = validatePasswordStrength(value);
+        setPasswordError(valid ? '' : message);
+    }
   };
 
   const handleFileChange = (key: string, e: React.ChangeEvent<HTMLInputElement>) => {
@@ -69,21 +89,52 @@ const RegistrationPage: React.FC = () => {
     }
   };
 
-  const handleNext = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Validation Logic (Simplified)
-    if (step === 1 && !formData.email.includes('@')) {
-        alert("Please enter a valid email.");
+  const handleSendCode = (type: 'email' | 'phone') => {
+    if (type === 'email' && !formData.email) {
+      alert('Please enter your email address first.');
+      return;
+    }
+    if (type === 'phone' && !formData.phone) {
+      alert('Please enter your phone number first.');
+      return;
+    }
+     if (type === 'email' && role === 'seller' && (formData.email.includes('gmail.com') || formData.email.includes('yahoo.com'))) {
+        alert("Sellers must use a corporate email domain.");
         return;
     }
 
-    // Role-specific logic before moving next
-    if (role === 'seller' && step === 1) {
-        if (formData.email.includes('gmail.com') || formData.email.includes('yahoo.com')) {
-            alert("Sellers must use a corporate email domain.");
-            return;
-        }
+    const code = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit code
+    if (type === 'email') {
+      setVerification(prev => ({ ...prev, emailCode: code, emailCodeSent: true, error: '' }));
+      alert(`Email verification code sent to ${formData.email}: ${code}`);
+    } else {
+      setVerification(prev => ({ ...prev, phoneOtp: code, phoneOtpSent: true, error: '' }));
+      alert(`SMS OTP sent to ${formData.phone}: ${code}`);
+    }
+  };
+
+  const handleVerifyCode = (type: 'email' | 'phone') => {
+    if (type === 'email') {
+      if (formData.email_otp === verification.emailCode) {
+        setVerification(prev => ({ ...prev, emailVerified: true, error: '' }));
+      } else {
+        setVerification(prev => ({ ...prev, error: 'Invalid email verification code.' }));
+      }
+    } else { // phone
+      if (formData.phone_otp === verification.phoneOtp) {
+        setVerification(prev => ({ ...prev, phoneVerified: true, error: '' }));
+      } else {
+        setVerification(prev => ({ ...prev, error: 'Invalid phone OTP.' }));
+      }
+    }
+  };
+
+
+  const handleNext = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (step === 1 && passwordError) {
+        return; // Prevent proceeding if password weak
     }
 
     if (step < currentSteps.length) {
@@ -135,7 +186,15 @@ const RegistrationPage: React.FC = () => {
         <button
             key={r}
             type="button"
-            onClick={() => { setRole(r); setStep(1); setFormData({...formData, email: ''}); }}
+            onClick={() => { 
+                setRole(r); 
+                setStep(1); 
+                setFormData(prev => ({...prev, email: ''})); 
+                setVerification({
+                    emailCode: '', phoneOtp: '', emailVerified: false, phoneVerified: false,
+                    emailCodeSent: false, phoneOtpSent: false, error: ''
+                });
+            }}
             className={`flex flex-col items-center justify-center py-3 rounded-lg text-sm font-bold capitalize transition-all duration-200 ${
             role === r 
                 ? 'bg-white text-indigo-600 shadow-sm ring-1 ring-black/5' 
@@ -154,23 +213,75 @@ const RegistrationPage: React.FC = () => {
   const renderCommonAccount = () => (
     <div className="space-y-4 animate-fade-in">
         <h3 className="text-xl font-bold text-slate-800">Account Credentials</h3>
+        
+        {verification.error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 text-sm p-3 rounded-lg flex items-center gap-2">
+                <AlertTriangle size={16}/>
+                <span>{verification.error}</span>
+            </div>
+        )}
+
         <div className="space-y-4">
             <div>
                 <label className="block text-xs font-bold text-slate-600 mb-1">Full Name</label>
-                <input name="full_name" value={formData.full_name} onChange={handleInputChange} className="w-full p-3 border rounded-lg bg-slate-50" required placeholder="John Doe" />
+                <input name="full_name" value={formData.full_name} onChange={handleInputChange} className="w-full p-3 border rounded-lg bg-slate-50" required placeholder="John Doe" disabled={verification.emailVerified} />
             </div>
+
+            {/* Email Verification Block */}
             <div>
                 <label className="block text-xs font-bold text-slate-600 mb-1">Work Email</label>
-                <input name="email" type="email" value={formData.email} onChange={handleInputChange} className="w-full p-3 border rounded-lg bg-slate-50" required placeholder={role === 'seller' ? "name@company.com" : "email@example.com"} />
+                <div className="relative">
+                    <input name="email" type="email" value={formData.email} onChange={handleInputChange} className="w-full p-3 border rounded-lg bg-slate-50" required placeholder={role === 'seller' ? "name@company.com" : "email@example.com"} disabled={verification.emailCodeSent || verification.emailVerified} />
+                    {!verification.emailVerified && (
+                        <button type="button" onClick={() => handleSendCode('email')} disabled={verification.emailCodeSent || !formData.email} className="absolute right-2 top-1/2 -translate-y-1/2 bg-slate-200 text-slate-600 text-xs font-bold px-3 py-1.5 rounded disabled:opacity-50 hover:bg-slate-300">
+                           {verification.emailCodeSent ? 'Resend' : 'Send Code'}
+                        </button>
+                    )}
+                    {verification.emailVerified && (
+                        <div className="absolute right-2 top-1/2 -translate-y-1/2 text-green-600 text-xs font-bold flex items-center gap-1"><CheckCircle size={14}/> Verified</div>
+                    )}
+                </div>
                 {role === 'seller' && <p className="text-[10px] text-amber-600 mt-1">* Corporate domain required for sellers</p>}
             </div>
+            {verification.emailCodeSent && !verification.emailVerified && (
+                <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1">Enter Email Code</label>
+                    <div className="flex gap-2">
+                        <input name="email_otp" value={formData.email_otp} onChange={handleInputChange} onFocus={() => setVerification(prev => ({...prev, error: ''}))} className="w-full p-3 border rounded-lg bg-slate-50" placeholder="6-digit code"/>
+                        <button type="button" onClick={() => handleVerifyCode('email')} className="px-6 py-2 bg-slate-800 text-white rounded-lg font-bold">Verify</button>
+                    </div>
+                </div>
+            )}
+            
+            {/* Phone Verification Block */}
             <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1">Mobile Phone (OTP)</label>
-                <input name="phone" type="tel" value={formData.phone} onChange={handleInputChange} className="w-full p-3 border rounded-lg bg-slate-50" required placeholder="+1..." />
+                <label className="block text-xs font-bold text-slate-600 mb-1">Mobile Phone {role === 'seller' && '(OTP Required)'}</label>
+                 <div className="relative">
+                    <input name="phone" type="tel" value={formData.phone} onChange={handleInputChange} className="w-full p-3 border rounded-lg bg-slate-50" required placeholder="+1..." disabled={verification.phoneOtpSent || verification.phoneVerified} />
+                     {role === 'seller' && !verification.phoneVerified && (
+                        <button type="button" onClick={() => handleSendCode('phone')} disabled={verification.phoneOtpSent || !formData.phone} className="absolute right-2 top-1/2 -translate-y-1/2 bg-slate-200 text-slate-600 text-xs font-bold px-3 py-1.5 rounded disabled:opacity-50 hover:bg-slate-300">
+                           {verification.phoneOtpSent ? 'Resend' : 'Send OTP'}
+                        </button>
+                    )}
+                    {role === 'seller' && verification.phoneVerified && (
+                        <div className="absolute right-2 top-1/2 -translate-y-1/2 text-green-600 text-xs font-bold flex items-center gap-1"><CheckCircle size={14}/> Verified</div>
+                    )}
+                </div>
             </div>
+            {role === 'seller' && verification.phoneOtpSent && !verification.phoneVerified && (
+                 <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1">Enter Phone OTP</label>
+                    <div className="flex gap-2">
+                        <input name="phone_otp" value={formData.phone_otp} onChange={handleInputChange} onFocus={() => setVerification(prev => ({...prev, error: ''}))} className="w-full p-3 border rounded-lg bg-slate-50" placeholder="6-digit code"/>
+                        <button type="button" onClick={() => handleVerifyCode('phone')} className="px-6 py-2 bg-slate-800 text-white rounded-lg font-bold">Verify</button>
+                    </div>
+                </div>
+            )}
+            
             <div>
                 <label className="block text-xs font-bold text-slate-600 mb-1">Password</label>
-                <input name="password" type="password" value={formData.password} onChange={handleInputChange} className="w-full p-3 border rounded-lg bg-slate-50" required placeholder="Min 8 chars, 1 special char" />
+                <input name="password" type="password" value={formData.password} onChange={handleInputChange} className={`w-full p-3 border rounded-lg bg-slate-50 ${passwordError ? 'border-red-500 ring-1 ring-red-500' : ''}`} required placeholder="Min 8 chars, 1 special char" />
+                {passwordError && <p className="text-xs text-red-500 mt-1 flex items-center gap-1"><AlertTriangle size={12}/> {passwordError}</p>}
             </div>
         </div>
     </div>
@@ -366,7 +477,7 @@ const RegistrationPage: React.FC = () => {
         
         {/* Left Side: Context & Branding */}
         <div className="md:w-1/3 bg-slate-900 text-white p-8 flex flex-col justify-between relative overflow-hidden">
-            <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80')] bg-cover bg-center opacity-20"></div>
+            <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?ixlib-rb-4.0.3&auto=format&fit=crop&w=2070&q=80')] bg-cover bg-center opacity-20"></div>
             <div className="relative z-10">
                 <div className="flex items-center gap-2 mb-8">
                     <div className="w-8 h-8 bg-orange-500 rounded flex items-center justify-center font-bold">T</div>
@@ -413,8 +524,8 @@ const RegistrationPage: React.FC = () => {
                         )}
                         <button 
                             type="submit" 
-                            disabled={loading}
-                            className="flex-1 bg-indigo-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2 shadow-lg shadow-indigo-200"
+                            disabled={loading || !verification.emailVerified || (role === 'seller' && !verification.phoneVerified) || (step === 1 && !!passwordError)}
+                            className="flex-1 bg-indigo-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2 shadow-lg shadow-indigo-200 disabled:bg-gray-300 disabled:shadow-none"
                         >
                             {loading ? <Loader2 className="animate-spin"/> : step === currentSteps.length ? (role === 'partner' ? 'Submit Application' : 'Complete Registration') : 'Next Step'}
                             {!loading && step < currentSteps.length && <ArrowRight size={18}/>}

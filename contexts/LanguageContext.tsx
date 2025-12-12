@@ -2,14 +2,14 @@
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 
 type LanguageCode = 'en' | 'zh' | 'bn' | 'ur' | 'fa' | 'ru' | 'ar' | 'de' | 'pt' | 'ms' | 'hi' | 'th' | 'ps';
-type CurrencyCode = 'USD' | 'CNY' | 'EUR' | 'BTC';
+type CurrencyCode = 'USD' | 'CNY' | 'EUR' | 'BTC' | 'BDT';
 
 interface LanguageContextType {
   language: LanguageCode;
   setLanguage: (lang: LanguageCode) => void;
   currency: CurrencyCode;
   setCurrency: (curr: CurrencyCode) => void;
-  formatPrice: (amountInUSD: number) => string;
+  formatPrice: (amountInUSD: number, options?: Intl.NumberFormatOptions) => string;
   t: (key: string) => string;
   isRTL: boolean;
   availableLanguages: { code: LanguageCode; label: string; flag: string }[];
@@ -18,12 +18,12 @@ interface LanguageContextType {
 
 const LANGUAGES: { code: LanguageCode; label: string; flag: string }[] = [
   { code: 'en', label: 'English', flag: '🇺🇸' },
+  { code: 'ar', label: 'Arabic (العربية)', flag: '🇸🇦' }, // Added prominently
   { code: 'zh', label: 'Chinese (中文)', flag: '🇨🇳' },
   { code: 'bn', label: 'Bengali (বাংলা)', flag: '🇧🇩' },
   { code: 'ur', label: 'Urdu (اردو)', flag: '🇵🇰' },
   { code: 'fa', label: 'Persian (فارسی)', flag: '🇮🇷' },
   { code: 'ru', label: 'Russian (Русский)', flag: '🇷🇺' },
-  { code: 'ar', label: 'Arabic (العربية)', flag: '🇸🇦' },
   { code: 'de', label: 'German (Deutsch)', flag: '🇩🇪' },
   { code: 'pt', label: 'Portuguese (Português)', flag: '🇵🇹' },
   { code: 'ms', label: 'Malay (Melayu)', flag: '🇲🇾' },
@@ -37,6 +37,7 @@ const CURRENCIES: { code: CurrencyCode; symbol: string; rate: number }[] = [
   { code: 'CNY', symbol: '¥', rate: 7.23 },
   { code: 'EUR', symbol: '€', rate: 0.92 },
   { code: 'BTC', symbol: '₿', rate: 0.000015 },
+  { code: 'BDT', symbol: '৳', rate: 117 },
 ];
 
 const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
@@ -363,6 +364,22 @@ const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
   }
 };
 
+const LOCALE_MAP: Partial<Record<LanguageCode, string>> = {
+    en: 'en-US',
+    zh: 'zh-CN',
+    bn: 'bn-BD',
+    ur: 'ur-PK',
+    fa: 'fa-IR',
+    ru: 'ru-RU',
+    ar: 'ar-SA',
+    de: 'de-DE',
+    pt: 'pt-PT',
+    ms: 'ms-MY',
+    hi: 'hi-IN',
+    th: 'th-TH',
+    ps: 'ps-AF'
+};
+
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -381,24 +398,22 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
     return TRANSLATIONS[language]?.[key] || TRANSLATIONS['en']?.[key] || key;
   };
 
-  const formatPrice = (amountInUSD: number): string => {
+  const formatPrice = (amountInUSD: number, options: Intl.NumberFormatOptions = {}): string => {
     const selectedCurr = CURRENCIES.find(c => c.code === currency) || CURRENCIES[0];
     const converted = amountInUSD * selectedCurr.rate;
     
-    // Formatting based on currency type
     if (currency === 'BTC') {
       return `${selectedCurr.symbol}${converted.toFixed(6)}`;
     }
     
-    // Use Intl.NumberFormat for nice currency formatting if possible, else simpler fallback
     try {
-       // Use the selected language for locale formatting, defaulting to en-US for 'en'
-       const locale = language === 'en' ? 'en-US' : language;
+       const locale = LOCALE_MAP[language] || 'en-US';
        return new Intl.NumberFormat(locale, {
          style: 'currency',
-         currency: currency
+         currency: currency,
+         ...options
        }).format(converted);
-    } catch(e) {
+    } catch (e) {
        return `${selectedCurr.symbol}${converted.toFixed(2)}`;
     }
   };

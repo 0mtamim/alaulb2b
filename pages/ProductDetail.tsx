@@ -1,10 +1,12 @@
 
+
 import React, { useState, useRef, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { MessageCircle, ShieldCheck, Truck, CreditCard, ChevronRight, Sparkles, X, Send, FileText, Ruler, Zap, Box, Star, ThumbsUp, User, DollarSign, Layers, Globe, Check, CheckCircle, AlertCircle, Clock, Package, Info } from 'lucide-react';
+import { MessageCircle, ShieldCheck, Truck, CreditCard, ChevronRight, Sparkles, X, Send, FileText, Ruler, Zap, Box, Star, ThumbsUp, User, DollarSign, Layers, Globe, Check, CheckCircle, AlertCircle, Clock, Package, Info, Plus, Minus } from 'lucide-react';
 import { negotiateAssistant } from '../services/gemini';
-import { Review, PricingTier } from '../types';
+import { Review, PricingTier, Product } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useCart } from '../contexts/CartContext';
 
 // Mock Specifications Data
 const MOCK_SPECS = {
@@ -29,6 +31,30 @@ const MOCK_TIERS: PricingTier[] = [
     { minQty: 200, maxQty: 499, pricePerUnit: 125 },
     { minQty: 500, maxQty: null, pricePerUnit: 115 },
 ];
+
+// FIX: Converted specifications to Specification[], added missing required fields, and removed invalid 'priceRange' property to make the object fully compliant with the Product type.
+const MOCK_PRODUCT: Product = {
+  id: '1', 
+  title: 'Industrial Heavy Duty Hydraulic Pump 5000 PSI', 
+  description: 'High performance pump for heavy machinery.', 
+  price: 145, 
+  moq: 10, 
+  image: 'https://picsum.photos/600/600?random=100', 
+  category: 'Machinery', 
+  rating: 4.8, 
+  supplierId: 's1', 
+  specifications: Object.entries(MOCK_SPECS).map(([key, value]) => ({ key, value })), 
+  origin: 'China', 
+  supplierVerified: true, 
+  supplierBusinessType: 'Manufacturer', 
+  productType: 'physical',
+  status: 'active',
+  variants: [{ id: 'v1', sku: 'PUMP-5000-X', attributes: { Model: 'Standard' }, price: 145, stock: 150 }],
+  pricingTiers: MOCK_TIERS,
+  multimedia: { images: ['https://picsum.photos/600/600?random=100'] },
+  shipping: { weight: 45, weightUnit: 'kg', dimensions: { length: 60, width: 40, height: 40, unit: 'cm' } },
+  compliance: { certificates: ['CE', 'ISO 9001'] },
+};
 
 const MOCK_REVIEWS: Review[] = [
   {
@@ -56,6 +82,7 @@ const MOCK_REVIEWS: Review[] = [
 const ProductDetail: React.FC = () => {
   const { id } = useParams();
   const { formatPrice, t } = useLanguage();
+  const { addToCart } = useCart();
   
   const [showChat, setShowChat] = useState(false);
   const [chatInput, setChatInput] = useState('');
@@ -80,6 +107,7 @@ const ProductDetail: React.FC = () => {
 
   const [selectedColor, setSelectedColor] = useState(VARIANTS.colors[0]);
   const [selectedSize, setSelectedSize] = useState(VARIANTS.sizes[0]);
+  const [quantity, setQuantity] = useState(1);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -231,7 +259,7 @@ const ProductDetail: React.FC = () => {
 
          {/* Info */}
          <div className="md:col-span-4">
-           <h1 className="text-2xl font-bold text-gray-900 mb-2">Industrial Grade Heavy Duty Hydraulic Pump 5000 PSI High Performance</h1>
+           <h1 className="text-2xl font-bold text-gray-900 mb-2">{MOCK_PRODUCT.title}</h1>
            <div className="flex items-center gap-3 mb-6 text-sm">
              <div className="flex items-center text-orange-500 font-bold">
                 <span className="mr-1">{averageRating}</span>
@@ -344,14 +372,25 @@ const ProductDetail: React.FC = () => {
              </div>
            </div>
 
-           <div className="space-y-3">
-             <button className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-full font-bold transition-colors shadow-lg shadow-orange-200 flex items-center justify-center gap-2" onClick={() => setShowChat(!showChat)}>
-               <MessageCircle size={20}/> {t('btn_contact')}
-             </button>
-             <button className="w-full bg-white border-2 border-orange-500 text-orange-600 py-3 rounded-full font-bold hover:bg-orange-50 transition-colors">
-               {t('btn_order')}
-             </button>
+           <div className="flex items-center gap-4 mb-4">
+              <div className="flex items-center border border-slate-300 rounded-full">
+                  <button onClick={() => setQuantity(q => Math.max(1, q - 1))} className="p-3 text-slate-500 hover:bg-slate-100 rounded-l-full"><Minus size={16}/></button>
+                  <input 
+                    type="number" 
+                    value={quantity}
+                    onChange={e => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                    className="w-16 text-center font-bold text-lg border-none focus:ring-0 bg-transparent"
+                  />
+                  <button onClick={() => setQuantity(q => q + 1)} className="p-3 text-slate-500 hover:bg-slate-100 rounded-r-full"><Plus size={16}/></button>
+              </div>
+              <button 
+                onClick={() => addToCart(MOCK_PRODUCT, {quantity})}
+                className="flex-1 bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-full font-bold transition-colors shadow-lg shadow-orange-200"
+              >
+                Add to Cart
+              </button>
            </div>
+            <button onClick={() => setShowChat(!showChat)} className="w-full bg-slate-100 text-slate-700 py-3 rounded-full font-bold hover:bg-slate-200 transition-colors">{t('btn_contact')}</button>
          </div>
 
          {/* Supplier Card */}

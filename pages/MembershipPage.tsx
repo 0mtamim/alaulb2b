@@ -15,6 +15,19 @@ interface PricingPlan {
   btnColor: string;
 }
 
+const SUPPLIER_FEATURE_COMPARISON = [
+    { feature: "Verified Supplier Badge", free: false, gold: true, pro: true, description: "Gain buyer trust with a badge indicating your business has been verified by us." },
+    { feature: "Product Listing Limit", free: "50 Products", gold: "Unlimited", pro: "Unlimited", description: "Number of active products you can display in your storefront." },
+    { feature: "RFQ Response Limit", free: "5 RFQs/month", gold: "50 RFQs/month", pro: "Unlimited", description: "How many buyer requests for quotation you can respond to each month." },
+    { feature: "Search Ranking", free: "Standard", gold: "Priority", pro: "Top Tier", description: "Appear higher in search results, increasing your visibility to buyers." },
+    { feature: "Custom Storefront", free: false, gold: true, pro: true, description: "Customize your company profile page with unique branding and layouts." },
+    { feature: "Access to Premium Buyers", free: false, gold: true, pro: true, description: "View and contact high-value buyers from our exclusive directory." },
+    { feature: "AI Market Insights", free: false, gold: "Basic", pro: "Advanced", description: "Get AI-powered data on product trends, pricing, and new market opportunities." },
+    { feature: "Key Account Manager", free: false, gold: false, pro: true, description: "A dedicated manager to help you optimize your sales and sourcing strategy." },
+    { feature: "0% Transaction Fee", free: false, false: false, pro: "First $1M", description: "Enjoy zero transaction fees on your first $1 million in sales for the year." }
+];
+
+
 const MembershipPage: React.FC = () => {
   const [view, setView] = useState<'supplier' | 'buyer'>('supplier');
 
@@ -114,6 +127,13 @@ const MembershipPage: React.FC = () => {
 
   const plans = view === 'supplier' ? SUPPLIER_PLANS : BUYER_PLANS;
 
+  const renderFeatureValue = (value: any) => {
+    if (typeof value === 'boolean') {
+        return value ? <CheckCircle className="text-green-500 mx-auto" size={20}/> : <X className="text-red-400 mx-auto" size={20}/>;
+    }
+    return <span className="text-sm font-medium text-slate-700">{value}</span>;
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 py-12">
       <div className="container mx-auto px-4">
@@ -183,37 +203,37 @@ const MembershipPage: React.FC = () => {
           ))}
         </div>
 
-        {/* Benefits Section */}
-        <div className="mt-20 grid grid-cols-1 md:grid-cols-4 gap-8">
-           <div className="text-center p-6">
-              <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                 <ShieldCheck size={32}/>
-              </div>
-              <h4 className="font-bold text-slate-800 mb-2">Trade Assurance</h4>
-              <p className="text-sm text-slate-500">Protect your orders from payment to delivery with our secure escrow system.</p>
-           </div>
-           <div className="text-center p-6">
-              <div className="w-16 h-16 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                 <Globe size={32}/>
-              </div>
-              <h4 className="font-bold text-slate-800 mb-2">Global Reach</h4>
-              <p className="text-sm text-slate-500">Access buyers and sellers in over 190 countries and regions.</p>
-           </div>
-           <div className="text-center p-6">
-              <div className="w-16 h-16 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                 <Zap size={32}/>
-              </div>
-              <h4 className="font-bold text-slate-800 mb-2">AI Matching</h4>
-              <p className="text-sm text-slate-500">Our Smart Match technology pairs you with the right business partners instantly.</p>
-           </div>
-           <div className="text-center p-6">
-              <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                 <BarChart2 size={32}/>
-              </div>
-              <h4 className="font-bold text-slate-800 mb-2">Data Insights</h4>
-              <p className="text-sm text-slate-500">Get real-time market trends and demand analysis to stay ahead.</p>
-           </div>
-        </div>
+        {/* Conditional Supplier Benefits Table */}
+        {view === 'supplier' && (
+            <div className="mt-20 max-w-7xl mx-auto">
+                <h2 className="text-3xl font-bold text-slate-800 text-center mb-10">Compare Plan Features</h2>
+                <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+                    <table className="w-full text-left">
+                        <thead className="bg-slate-50 border-b border-gray-200">
+                            <tr>
+                                <th className="p-6 text-sm font-bold text-slate-600 w-1/3">Feature</th>
+                                <th className="p-6 text-sm font-bold text-slate-600 text-center">Free</th>
+                                <th className="p-6 text-sm font-bold text-orange-600 text-center bg-orange-50/50 border-x border-orange-100">Gold</th>
+                                <th className="p-6 text-sm font-bold text-slate-600 text-center">Platinum Pro</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {SUPPLIER_FEATURE_COMPARISON.map((item, idx) => (
+                                <tr key={idx} className="border-t border-gray-100 hover:bg-slate-50/50 transition-colors">
+                                    <td className="p-6">
+                                        <p className="font-bold text-slate-800">{item.feature}</p>
+                                        <p className="text-xs text-slate-500 mt-1">{item.description}</p>
+                                    </td>
+                                    <td className="p-6 text-center">{renderFeatureValue(item.free)}</td>
+                                    <td className="p-6 text-center bg-orange-50/50 border-x border-orange-100">{renderFeatureValue(item.gold)}</td>
+                                    <td className="p-6 text-center">{renderFeatureValue(item.pro)}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        )}
 
       </div>
     </div>

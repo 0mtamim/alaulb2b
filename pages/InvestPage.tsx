@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Search, Briefcase, Filter, Globe, DollarSign, TrendingUp, Lock, Sparkles, Building, Gem, UserCheck, MessageSquare, Clock } from 'lucide-react';
+import { Search, Briefcase, Filter, Globe, DollarSign, TrendingUp, Lock, Sparkles, Building, Gem, UserCheck, MessageSquare, Clock, FileText, CheckCircle, PieChart } from 'lucide-react';
 import { BusinessListing } from '../types';
 
 const MOCK_LISTINGS: BusinessListing[] = [
@@ -79,6 +79,35 @@ const InvestPage: React.FC = () => {
              </div>
          </div>
       </div>
+
+      {/* How it Works Section */}
+        <div className="py-16 bg-white border-b border-gray-100">
+            <div className="container mx-auto px-4">
+                <h2 className="text-3xl font-bold text-center text-slate-800 mb-12">A Secure Process for High-Value Deals</h2>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-8 text-center">
+                    <div className="flex flex-col items-center">
+                        <div className="w-16 h-16 bg-slate-100 text-slate-600 rounded-full flex items-center justify-center text-2xl font-bold mb-4">1</div>
+                        <h3 className="font-bold text-slate-800 mb-2">Browse & Inquire</h3>
+                        <p className="text-sm text-slate-500">Explore blind profiles and send confidential inquiries.</p>
+                    </div>
+                    <div className="flex flex-col items-center">
+                        <div className="w-16 h-16 bg-slate-100 text-slate-600 rounded-full flex items-center justify-center text-2xl font-bold mb-4">2</div>
+                        <h3 className="font-bold text-slate-800 mb-2">Sign Digital NDA</h3>
+                        <p className="text-sm text-slate-500">Execute a legally binding non-disclosure agreement on-platform.</p>
+                    </div>
+                    <div className="flex flex-col items-center">
+                        <div className="w-16 h-16 bg-slate-100 text-slate-600 rounded-full flex items-center justify-center text-2xl font-bold mb-4">3</div>
+                        <h3 className="font-bold text-slate-800 mb-2">Access Data Room</h3>
+                        <p className="text-sm text-slate-500">Review verified financials and operational documents.</p>
+                    </div>
+                    <div className="flex flex-col items-center">
+                        <div className="w-16 h-16 bg-slate-100 text-slate-600 rounded-full flex items-center justify-center text-2xl font-bold mb-4">4</div>
+                        <h3 className="font-bold text-slate-800 mb-2">Make Offer</h3>
+                        <p className="text-sm text-slate-500">Submit offers and negotiate terms through our secure portal.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
 
       {/* Featured Section */}
       <div className="container mx-auto px-4 py-12">
